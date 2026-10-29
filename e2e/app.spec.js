@@ -273,6 +273,85 @@ test("consult lesson words during the quiz without losing answers or counting th
   expect(errors).toEqual([]);
 });
 
+test("grammar help explains unfamiliar words without interrupting study or the quiz", async ({
+  page,
+}, testInfo) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  const captureHelp = process.env.WORT_HELP_SCREENSHOTS === "1";
+  await page.goto("/");
+  await page.getByRole("button", { name: "Empezar mi primera lección" }).click();
+  await expect(page.locator(".lesson-tip")).not.toContainText(/dativo/i);
+  if (captureHelp) {
+    await mkdir(".qa", { recursive: true });
+    await page.screenshot({ path: `.qa/grammar-tip-${testInfo.project.name}.png`, fullPage: true });
+  }
+
+  const help = page.locator("#tip-help");
+  const studyHelp = page.locator('.lesson-tip [data-tip-help="trato"]');
+  await page.setViewportSize({ width: 320, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    "study tip fits at 320px").toBe(true);
+  await studyHelp.click();
+  await expect(help).toBeVisible();
+  await expect(help.getByRole("heading", { name: "¿Cuándo uso du o Sie?", exact: true })).toBeVisible();
+  await expect(help).toContainText("Wie heißt du?");
+  await expect(help).toContainText("Wie heißen Sie?");
+  await expect(help).toContainText("¿Cómo te llamas?");
+  await expect(help).toContainText("¿Cómo se llama usted?");
+  expect(await help.evaluate(dialog => {
+    const bounds = dialog.getBoundingClientRect();
+    return dialog.scrollWidth <= dialog.clientWidth && bounds.left >= 0 && bounds.right <= window.innerWidth;
+  }), "grammar popup fits at 320px").toBe(true);
+  await page.keyboard.press("Escape");
+  await expect(help).not.toBeVisible();
+  await expect(studyHelp).toBeFocused();
+  await expect(page.locator(".flashcard h1")).toHaveText(first.cards[0].de);
+  await expect(page.locator("#prev-card")).toBeDisabled();
+  await page.setViewportSize(testInfo.project.use.viewport);
+
+  for (let index = 0; index < first.cards.length; index++)
+    await page.locator("#next-card").click();
+  const question = page.locator(".exercise-stage h1");
+  await expect(question).toHaveText(first.exercises[0].prompt);
+  const selected = page.locator("[data-option]").filter({ hasText: first.exercises[0].answer });
+  await selected.click();
+  const progressSnapshot = () => page.evaluate(() => {
+    const progress = JSON.parse(localStorage.getItem("wort-progress") || "{}");
+    return {
+      xp: progress.xp || 0,
+      answers: Object.values(progress.activity || {}).reduce((sum, day) => sum + day.answers, 0),
+    };
+  });
+  const beforeHelp = await progressSnapshot();
+  await page.locator("#consult-words").click();
+  const reference = page.locator("#lesson-reference");
+  const referenceHelp = reference.locator('[data-tip-help="formas"]');
+  await referenceHelp.click();
+  await expect(help).toBeVisible();
+  await expect(help.getByRole("heading", { name: "¿Por qué aparecen dir e Ihnen?", exact: true })).toBeVisible();
+  for (const phrase of ["Wie geht es dir?", "Wie geht es Ihnen?", "Und dir?", "Und Ihnen?"])
+    await expect(help).toContainText(phrase);
+  if (captureHelp)
+    await page.screenshot({ path: `.qa/grammar-help-${testInfo.project.name}.png`, fullPage: false });
+
+  // Closing the top popup must leave the word consultation and quiz untouched.
+  await help.getByRole("button", { name: "Cerrar explicación", exact: true }).click();
+  await expect(help).not.toBeVisible();
+  await expect(reference).toHaveAttribute("open", "");
+  await expect(referenceHelp).toBeFocused();
+  await referenceHelp.click();
+  await help.getByRole("button", { name: "Cerrar ayuda", exact: true }).click();
+  await expect(reference).toHaveAttribute("open", "");
+  await expect(referenceHelp).toBeFocused();
+  await reference.getByRole("button", { name: "Volver al quiz", exact: true }).click();
+  await expect(question).toHaveText(first.exercises[0].prompt);
+  await expect(selected).toHaveClass(/selected/);
+  await expect(page.getByRole("button", { name: "Comprobar", exact: true })).toBeEnabled();
+  expect(await progressSnapshot()).toEqual(beforeHelp);
+  expect(errors).toEqual([]);
+});
+
 test("dictionary, settings, backup import/export and reset use real persisted data", async ({
   page,
 }) => {

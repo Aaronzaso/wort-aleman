@@ -1151,6 +1151,39 @@ main {
 .lesson-tip p {
   color: var(--muted);
 }
+.lesson-tip-content {
+  min-width: 0;
+}
+.tip-questions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 10px;
+}
+.tip-help-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--lilac);
+  color: var(--purple-dark);
+  font-size: 13px;
+}
+.tip-help-button:hover {
+  background: #ded5f6;
+}
+.tip-help-button > span {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-weight: 700;
+}
 .study-controls {
   display: flex;
   justify-content: space-between;
@@ -1168,10 +1201,11 @@ main {
   font-size: 12px;
   color: var(--muted);
 }
-html:has(.lesson-reference[open]) {
+html:has(.lesson-reference[open], .lesson-help[open]) {
   overflow: hidden;
 }
-.lesson-reference {
+.lesson-reference,
+.lesson-help {
   width: min(640px, calc(100% - 32px));
   max-width: none;
   max-height: calc(100dvh - 32px);
@@ -1183,12 +1217,47 @@ html:has(.lesson-reference[open]) {
   color: var(--ink);
   overflow: hidden;
 }
-.lesson-reference[open] {
+.lesson-reference[open],
+.lesson-help[open] {
   display: flex;
   flex-direction: column;
 }
-.lesson-reference::backdrop {
+.lesson-reference::backdrop,
+.lesson-help::backdrop {
   background: #28233999;
+}
+.lesson-help {
+  width: min(500px, calc(100% - 32px));
+}
+.lesson-help .reference-heading h2 {
+  flex: 1;
+  min-width: 0;
+}
+.help-content {
+  padding: 0 24px 22px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font-size: 14px;
+}
+.help-examples {
+  margin: 22px 0;
+}
+.help-examples > div + div {
+  margin-top: 18px;
+}
+.help-examples dt {
+  color: var(--purple-dark);
+  font-weight: 700;
+  line-height: 1.5;
+}
+.help-examples dd {
+  margin: 4px 0 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.help-note {
+  color: var(--muted);
+  font-size: 13px;
 }
 .reference-heading {
   display: flex;
@@ -1275,6 +1344,9 @@ html:has(.lesson-reference[open]) {
   }
   .reference-body {
     padding: 0 18px;
+  }
+  .help-content {
+    padding: 0 18px 20px;
   }
   .reference-footer {
     padding: 16px 18px;

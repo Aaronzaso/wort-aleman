@@ -18,6 +18,8 @@ Una app para hispanohablantes que quieren dar su primer paso en alemán desde el
 - Crear una cuenta con correo y contraseña para continuar desde otro dispositivo.
 - Practicar sin cuenta, con el progreso guardado solo en este navegador.
 
+La primera lección incluye ayudas «?» sobre du/Sie y dir/Ihnen con ejemplos alemán/español, contrastados con el [glosario A1 de Goethe-Institut](https://lernen.goethe.de/deutschonline/A1/PDF/EN/A1_deutschonline_course_vocabulary_1-18.pdf).
+
 ## Desde tu celular
 
 Abre **[wort-aleman.vercel.app](https://wort-aleman.vercel.app)** en el navegador.

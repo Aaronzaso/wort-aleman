@@ -10,7 +10,34 @@ export const lessons = [
     icon: "wave",
     color: "#d96743",
     summary: "Empieza con un saludo, pregunta cómo está alguien y despídete.",
-    tip: "Du es el trato cercano; Sie es el trato formal y se escribe con mayúscula. En Wie geht es Ihnen?, Ihnen es la forma de dativo del trato formal. En español suele corresponder a «usted» o «ustedes».",
+    tip: "En alemán, usa du para hablar con confianza y Sie para el trato formal.",
+    // Ejemplos de trato y pronombres: glosario A1 de Goethe-Institut.
+    tipHelp: [
+      {
+        id: "trato",
+        label: "du y Sie",
+        title: "¿Cuándo uso du o Sie?",
+        text: "Du se usa en el trato cercano, por ejemplo con amistades. Sie se usa en el trato formal, para una persona o varias, y lleva mayúscula.",
+        examples: [
+          { de: "Wie heißt du?", es: "¿Cómo te llamas?" },
+          { de: "Wie heißen Sie?", es: "¿Cómo se llama usted? / ¿Cómo se llaman ustedes?" },
+        ],
+        note: "En español, el uso de tú, vos y usted cambia según el país. Aquí estamos aprendiendo cómo se distingue el trato en alemán.",
+      },
+      {
+        id: "formas",
+        label: "dir e Ihnen",
+        title: "¿Por qué aparecen dir e Ihnen?",
+        text: "En estas expresiones, dir corresponde al trato cercano e Ihnen al formal. Aprende las preguntas completas para saber cuál usar.",
+        examples: [
+          { de: "Wie geht es dir?", es: "¿Cómo estás?" },
+          { de: "Wie geht es Ihnen?", es: "¿Cómo está usted? / ¿Cómo están ustedes?" },
+          { de: "Und dir?", es: "¿Y tú?" },
+          { de: "Und Ihnen?", es: "¿Y usted? / ¿Y ustedes?" },
+        ],
+        note: "En estas preguntas se dice dir en lugar de du e Ihnen en lugar de Sie. Mantén la frase completa al practicar.",
+      },
+    ],
     cards: [
       {
         id: "saludos-01",

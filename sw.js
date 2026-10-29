@@ -1,4 +1,4 @@
-const CACHE = "wort-v2.0.2-quiz-reference";
+const CACHE = "wort-v2.0.3-grammar-help";
 const ASSETS = [
   "./",
   "./index.html",

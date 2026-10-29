@@ -155,6 +155,8 @@ function render() {
       privacy.textContent =
         "No hay anuncios ni analítica. Con una cuenta, Neon gestiona el acceso y guarda tu progreso; Vercel aloja la app. Sin cuenta, los avances permanecen en este navegador. Las voces son del dispositivo o de su proveedor.";
   }
+  if (session?.type === "lesson" && session.stage === "exercise")
+    $("#main").insertAdjacentHTML("beforeend", renderTipHelpDialog(session.lesson));
   bind();
   account?.bind();
 }
@@ -291,8 +293,15 @@ function startReview(all = false) {
 function sessionHeader(title, progress, label) {
   return `<div class="session-top"><button class="exit-button" id="exit-session">${icon("close")}<span>Salir</span></button><span>${esc(title)}</span><span>${label}</span></div><div class="session-progress"><span style="width:${progress}%"></span></div>`;
 }
+function renderLessonTip(lesson) {
+  return `<p>${esc(lesson.tip)}</p>${lesson.tipHelp?.length ? `<div class="tip-questions" aria-label="Explicaciones de la lección">${lesson.tipHelp.map((help) => `<button class="tip-help-button" data-tip-help="${esc(help.id)}" aria-label="Explicación: ${esc(help.label)}" aria-haspopup="dialog" aria-controls="tip-help"><span aria-hidden="true">?</span>${esc(help.label)}</button>`).join("")}</div>` : ""}`;
+}
+function renderTipHelpDialog(lesson) {
+  if (!lesson.tipHelp?.length) return "";
+  return `<dialog class="lesson-help" id="tip-help" aria-labelledby="tip-help-title" aria-describedby="tip-help-text"><div class="reference-heading"><h2 id="tip-help-title"></h2><button class="icon-button" data-close-help aria-label="Cerrar ayuda" autofocus>${icon("close")}</button></div><div class="help-content" id="tip-help-content"></div><div class="reference-footer"><button class="button primary" data-close-help>Cerrar explicación</button></div></dialog>`;
+}
 function renderLessonReference(lesson) {
-  return `<dialog class="lesson-reference" id="lesson-reference" aria-labelledby="reference-title" aria-describedby="reference-description"><div class="reference-heading"><div><h2 id="reference-title">Palabras de la lección</h2><p id="reference-description">Consulta «${esc(lesson.title)}» y vuelve a la misma pregunta. Tu respuesta se conserva.</p></div><button class="icon-button" id="close-reference" aria-label="Cerrar consulta" autofocus>${icon("close")}</button></div><div class="reference-body"><p class="reference-tip"><strong>Desde el español</strong>${esc(lesson.tip)}</p><ul class="reference-words">${lesson.cards.map((card) => `<li class="reference-word"><div><h3 lang="de">${esc(card.de)}</h3><p class="reference-meaning">${esc(card.es)}</p><p class="reference-note">${esc(card.note)}</p></div><button class="icon-button" data-speak="${esc(card.de)}" aria-label="Escuchar ${esc(card.de)}">${icon("sound")}</button></li>`).join("")}</ul></div><div class="reference-footer"><p class="reference-audio-status" role="status"></p><button class="button primary" id="resume-quiz">Volver al quiz ${icon("arrow")}</button></div></dialog>`;
+  return `<dialog class="lesson-reference" id="lesson-reference" aria-labelledby="reference-title" aria-describedby="reference-description"><div class="reference-heading"><div><h2 id="reference-title">Palabras de la lección</h2><p id="reference-description">Consulta «${esc(lesson.title)}» y vuelve a la misma pregunta. Tu respuesta se conserva.</p></div><button class="icon-button" id="close-reference" aria-label="Cerrar consulta" autofocus>${icon("close")}</button></div><div class="reference-body"><div class="reference-tip"><strong>Desde el español</strong>${renderLessonTip(lesson)}</div><ul class="reference-words">${lesson.cards.map((card) => `<li class="reference-word"><div><h3 lang="de">${esc(card.de)}</h3><p class="reference-meaning">${esc(card.es)}</p><p class="reference-note">${esc(card.note)}</p></div><button class="icon-button" data-speak="${esc(card.de)}" aria-label="Escuchar ${esc(card.de)}">${icon("sound")}</button></li>`).join("")}</ul></div><div class="reference-footer"><p class="reference-audio-status" role="status"></p><button class="button primary" id="resume-quiz">Volver al quiz ${icon("arrow")}</button></div></dialog>`;
 }
 function renderSession() {
   if (session.type === "review") {
@@ -306,7 +315,7 @@ function renderSession() {
     return `<section class="session-finish"><span class="finish-symbol">${icon("check")}</span><span class="exercise-kind" lang="de">GUT GEMACHT!</span><h1>Un paso más.<br>Una puerta nueva.</h1><p>Completaste «${esc(l.title)}». Acertaste ${session.correct} de ${l.exercises.length} preguntas al primer intento.</p><p class="finish-note">${session.wrong.size ? "Repasaste tus errores en una segunda ronda. Las frases de esta lección volverán mañana." : "Las palabras de esta lección volverán mañana para ayudarte a recordarlas."}</p><div class="button-group"><button class="button primary" id="finish-close">Volver a mi ruta ${icon("arrow")}</button><button class="button secondary" data-start="${lessons[(lessons.indexOf(l) + 1) % lessons.length].id}">Otra lección</button></div></section>`;
   if (session.stage === "study") {
     const c = l.cards[session.index];
-    return `${sessionHeader(l.title, (session.index / (l.cards.length + l.exercises.length)) * 100, `${session.index + 1} / ${l.cards.length} palabras`)}<section class="practice-stage study-stage"><span class="exercise-kind">ESCUCHA Y CONECTA</span><div class="flashcard"><span class="card-lang">DEUTSCH</span><h1 lang="de">${esc(c.de)}</h1><button class="listen-button" data-speak="${esc(c.de)}">${icon("sound")} Escuchar</button><span class="card-divider"></span><h2>${esc(c.es)}</h2><p>${esc(c.note)}</p></div><div class="lesson-tip"><b>Desde el español</b><p>${esc(l.tip)}</p></div><div class="study-controls"><button class="button secondary" id="prev-card" ${session.index === 0 ? "disabled" : ""}>Anterior</button><button class="button primary" id="next-card">${session.index === l.cards.length - 1 ? "Vamos a practicar" : "Siguiente palabra"} ${icon("arrow")}</button></div></section>`;
+    return `${sessionHeader(l.title, (session.index / (l.cards.length + l.exercises.length)) * 100, `${session.index + 1} / ${l.cards.length} palabras`)}<section class="practice-stage study-stage"><span class="exercise-kind">ESCUCHA Y CONECTA</span><div class="flashcard"><span class="card-lang">DEUTSCH</span><h1 lang="de">${esc(c.de)}</h1><button class="listen-button" data-speak="${esc(c.de)}">${icon("sound")} Escuchar</button><span class="card-divider"></span><h2>${esc(c.es)}</h2><p>${esc(c.note)}</p></div><div class="lesson-tip"><b>Desde el español</b><div class="lesson-tip-content">${renderLessonTip(l)}</div></div><div class="study-controls"><button class="button secondary" id="prev-card" ${session.index === 0 ? "disabled" : ""}>Anterior</button><button class="button primary" id="next-card">${session.index === l.cards.length - 1 ? "Vamos a practicar" : "Siguiente palabra"} ${icon("arrow")}</button></div></section>${renderTipHelpDialog(l)}`;
   }
   const e = session.queue[session.exerciseIndex],
     total = session.queue.length;
@@ -481,6 +490,27 @@ function bind() {
   reference?.addEventListener("close", () => {
     window.speechSynthesis?.cancel();
     $("#consult-words")?.focus({ preventScroll: true });
+  });
+  const helpDialog = $("#tip-help");
+  let helpTrigger;
+  document.querySelectorAll("[data-tip-help]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const help = session?.lesson?.tipHelp?.find(
+        (entry) => entry.id === button.dataset.tipHelp,
+      );
+      if (!help || !helpDialog) return;
+      helpTrigger = button;
+      window.speechSynthesis?.cancel();
+      $("#tip-help-title").textContent = help.title;
+      $("#tip-help-content").innerHTML = `<p id="tip-help-text">${esc(help.text)}</p><dl class="help-examples">${help.examples.map((example) => `<div><dt lang="de">${esc(example.de)}</dt><dd>${esc(example.es)}</dd></div>`).join("")}</dl>${help.note ? `<p class="help-note">${esc(help.note)}</p>` : ""}`;
+      helpDialog.showModal();
+    });
+  });
+  document.querySelectorAll("[data-close-help]").forEach((button) => {
+    button.addEventListener("click", () => helpDialog.close());
+  });
+  helpDialog?.addEventListener("close", () => {
+    helpTrigger?.focus({ preventScroll: true });
   });
   document.querySelectorAll("[data-option]").forEach(
     (el) =>
