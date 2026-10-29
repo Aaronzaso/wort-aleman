@@ -8,6 +8,7 @@ Una app para hispanohablantes que quieren dar su primer paso en alemán desde el
 
 - Estudiar 8 lecciones con 64 expresiones cotidianas y notas en español.
 - Resolver 48 ejercicios de elección, escucha, escritura y orden de palabras.
+- Consultar las palabras, traducciones y audios de la lección durante el quiz sin perder la pregunta ni la respuesta.
 - Volver a intentar los errores en una segunda ronda.
 - Escuchar con una voz alemana del dispositivo y ajustar la velocidad.
 - Repasar tarjetas con un calendario espaciado según cuánto te cuesta recordar.

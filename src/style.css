@@ -1160,6 +1160,126 @@ main {
 .study-controls .button {
   font-size: 13px;
 }
+.quiz-tools {
+  margin-bottom: 30px;
+}
+.quiz-tools p {
+  margin-top: 9px;
+  font-size: 12px;
+  color: var(--muted);
+}
+html:has(.lesson-reference[open]) {
+  overflow: hidden;
+}
+.lesson-reference {
+  width: min(640px, calc(100% - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--ink);
+  overflow: hidden;
+}
+.lesson-reference[open] {
+  display: flex;
+  flex-direction: column;
+}
+.lesson-reference::backdrop {
+  background: #28233999;
+}
+.reference-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 24px 24px 20px;
+}
+.reference-heading > div {
+  flex: 1;
+  min-width: 0;
+}
+.reference-heading h2 {
+  font-size: 26px;
+}
+.reference-heading p {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.reference-heading .icon-button {
+  flex-shrink: 0;
+}
+.reference-body {
+  padding: 0 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.reference-tip {
+  margin-bottom: 18px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.reference-tip strong {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--purple);
+}
+.reference-words {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.reference-word {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 12px;
+  padding: 18px 0;
+  border-top: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.reference-word h3 {
+  font-size: 21px;
+  line-height: 1.3;
+}
+.reference-meaning {
+  margin-top: 6px;
+  font-size: 15px;
+  color: var(--purple-dark);
+}
+.reference-note {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.reference-footer {
+  padding: 18px 24px;
+  border-top: 1px solid var(--line);
+}
+.reference-footer .button {
+  width: 100%;
+}
+.reference-audio-status:not(:empty) {
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+@media (max-width: 760px) {
+  .reference-heading {
+    gap: 10px;
+    padding: 20px 18px 16px;
+  }
+  .reference-heading h2 {
+    font-size: 23px;
+  }
+  .reference-body {
+    padding: 0 18px;
+  }
+  .reference-footer {
+    padding: 16px 18px;
+  }
+}
 .audio-exercise {
   display: inline-flex;
   align-items: center;

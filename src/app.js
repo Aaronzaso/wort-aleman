@@ -84,6 +84,11 @@ const persist = () => {
   }
 };
 const toast = (text) => {
+  const referenceStatus = $("#lesson-reference[open] .reference-audio-status");
+  if (referenceStatus) {
+    referenceStatus.textContent = text;
+    return;
+  }
   clearTimeout(toastTimer);
   $("#toast").textContent = text;
   $("#toast").classList.add("show");
@@ -286,6 +291,9 @@ function startReview(all = false) {
 function sessionHeader(title, progress, label) {
   return `<div class="session-top"><button class="exit-button" id="exit-session">${icon("close")}<span>Salir</span></button><span>${esc(title)}</span><span>${label}</span></div><div class="session-progress"><span style="width:${progress}%"></span></div>`;
 }
+function renderLessonReference(lesson) {
+  return `<dialog class="lesson-reference" id="lesson-reference" aria-labelledby="reference-title" aria-describedby="reference-description"><div class="reference-heading"><div><h2 id="reference-title">Palabras de la lección</h2><p id="reference-description">Consulta «${esc(lesson.title)}» y vuelve a la misma pregunta. Tu respuesta se conserva.</p></div><button class="icon-button" id="close-reference" aria-label="Cerrar consulta" autofocus>${icon("close")}</button></div><div class="reference-body"><p class="reference-tip"><strong>Desde el español</strong>${esc(lesson.tip)}</p><ul class="reference-words">${lesson.cards.map((card) => `<li class="reference-word"><div><h3 lang="de">${esc(card.de)}</h3><p class="reference-meaning">${esc(card.es)}</p><p class="reference-note">${esc(card.note)}</p></div><button class="icon-button" data-speak="${esc(card.de)}" aria-label="Escuchar ${esc(card.de)}">${icon("sound")}</button></li>`).join("")}</ul></div><div class="reference-footer"><p class="reference-audio-status" role="status"></p><button class="button primary" id="resume-quiz">Volver al quiz ${icon("arrow")}</button></div></dialog>`;
+}
 function renderSession() {
   if (session.type === "review") {
     const c = session.items[session.index];
@@ -316,7 +324,7 @@ function renderSession() {
       : e.type === "order"
         ? `<div class="sentence-output" aria-live="polite">${session.tokens.length ? session.tokens.map((i) => `<button data-remove-token="${i}" ${session.checked ? "disabled" : ""}>${esc(e.tokens[i])} <span>×</span></button>`).join("") : "<span>Toca las palabras en orden.</span>"}</div><div class="token-bank">${e.tokens.map((t, i) => `<button data-token="${i}" ${session.tokens.includes(i) || session.checked ? "disabled" : ""}>${esc(t)}</button>`).join("")}</div>`
         : `<label class="visually-hidden" for="written-answer">Tu respuesta en alemán</label><textarea id="written-answer" placeholder="Escribe tu respuesta…" rows="2" autocapitalize="off" autocomplete="off" spellcheck="false" ${session.checked ? "disabled" : ""}>${esc(session.written || "")}</textarea><div class="accent-keys" aria-label="Caracteres alemanes">${["ä", "ö", "ü", "ß", "Ä", "Ö", "Ü"].map((c) => `<button data-accent="${c}" ${session.checked ? "disabled" : ""}>${c}</button>`).join("")}</div>`;
-  return `${sessionHeader(l.title, progress, `${session.exerciseIndex + 1} / ${total}`)}<section class="practice-stage exercise-stage"><span class="exercise-kind">${label}${session.exerciseIndex >= l.exercises.length ? " · SEGUNDA VUELTA" : ""}</span><h1>${esc(e.prompt)}</h1>${e.type === "listen" ? `<button class="audio-exercise" data-speak="${esc(e.de || e.answer)}">${icon("sound")} Escuchar en alemán</button><details class="transcript"><summary>Ver transcripción si no puedo escuchar</summary><p lang="de">${esc(e.de || e.answer)}</p></details>` : ""}${input}<div id="feedback" aria-live="polite">${session.checked ? `<div class="answer-feedback ${session.result.correct ? "correct" : "incorrect"}"><strong>${session.result.correct ? "¡Bien! Sehr gut." : session.result.accentOnly ? "Casi: revisa los caracteres." : "Vamos a aprender de esta."}</strong>${!session.result.correct ? `<p>Respuesta: <b lang="de">${esc(e.answer)}</b></p>` : ""}<p>${esc(e.explanation)}</p></div>` : ""}</div><button class="button primary check-button" id="${session.checked ? "next-exercise" : "check-answer"}">${session.checked ? "Continuar" : "Comprobar"} ${icon("arrow")}</button></section>`;
+  return `${sessionHeader(l.title, progress, `${session.exerciseIndex + 1} / ${total}`)}<section class="practice-stage exercise-stage"><div class="quiz-tools"><button class="button secondary" id="consult-words" aria-haspopup="dialog" aria-controls="lesson-reference">${icon("book")} Consultar palabras</button><p>Puedes volver a las palabras cuando lo necesites.</p></div><span class="exercise-kind">${label}${session.exerciseIndex >= l.exercises.length ? " · SEGUNDA VUELTA" : ""}</span><h1>${esc(e.prompt)}</h1>${e.type === "listen" ? `<button class="audio-exercise" data-speak="${esc(e.de || e.answer)}">${icon("sound")} Escuchar en alemán</button><details class="transcript"><summary>Ver transcripción si no puedo escuchar</summary><p lang="de">${esc(e.de || e.answer)}</p></details>` : ""}${input}<div id="feedback" aria-live="polite">${session.checked ? `<div class="answer-feedback ${session.result.correct ? "correct" : "incorrect"}"><strong>${session.result.correct ? "¡Bien! Sehr gut." : session.result.accentOnly ? "Casi: revisa los caracteres." : "Vamos a aprender de esta."}</strong>${!session.result.correct ? `<p>Respuesta: <b lang="de">${esc(e.answer)}</b></p>` : ""}<p>${esc(e.explanation)}</p></div>` : ""}</div><button class="button primary check-button" id="${session.checked ? "next-exercise" : "check-answer"}">${session.checked ? "Continuar" : "Comprobar"} ${icon("arrow")}</button></section>${renderLessonReference(l)}`;
 }
 function focusMain() {
   $("#main").focus({ preventScroll: true });
@@ -461,6 +469,18 @@ function bind() {
     else session.stage = "exercise";
     render();
     focusMain();
+  });
+  const reference = $("#lesson-reference");
+  $("#consult-words")?.addEventListener("click", () => {
+    window.speechSynthesis?.cancel();
+    $(".reference-audio-status").textContent = "";
+    reference.showModal();
+  });
+  $("#close-reference")?.addEventListener("click", () => reference.close());
+  $("#resume-quiz")?.addEventListener("click", () => reference.close());
+  reference?.addEventListener("close", () => {
+    window.speechSynthesis?.cancel();
+    $("#consult-words")?.focus({ preventScroll: true });
   });
   document.querySelectorAll("[data-option]").forEach(
     (el) =>

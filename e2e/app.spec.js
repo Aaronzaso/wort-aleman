@@ -157,6 +157,122 @@ test("complete a lesson, correct a mistake, preserve progress and schedule revie
   expect(errors).toEqual([]);
 });
 
+test("consult lesson words during the quiz without losing answers or counting them twice", async ({
+  page,
+}, testInfo) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/");
+  await study(page);
+  const captureReference = process.env.WORT_REFERENCE_SCREENSHOTS === "1";
+  if (captureReference) {
+    await mkdir(".qa", { recursive: true });
+    await page.screenshot({ path: `.qa/quiz-reference-${testInfo.project.name}.png`, fullPage: false });
+  }
+  const reference = page.getByRole("dialog", { name: "Palabras de la lección" });
+  const consult = page.locator("#consult-words");
+  const progressSnapshot = () => page.evaluate(() => {
+    const progress = JSON.parse(localStorage.getItem("wort-progress") || "{}");
+    return {
+      xp: progress.xp || 0,
+      answers: Object.values(progress.activity || {}).reduce(
+        (sum, day) => sum + day.answers, 0,
+      ),
+    };
+  });
+
+  // Looking up a word must not clear a choice or submit it on the learner's behalf.
+  const selected = page.locator("[data-option]").filter({ hasText: "Gute Nacht!" });
+  await selected.click();
+  const beforeConsult = await progressSnapshot();
+  await page.setViewportSize({ width: 320, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    "quiz has no horizontal overflow at 320px").toBe(true);
+  await consult.click();
+  await expect(reference).toBeVisible();
+  expect(await reference.evaluate(dialog => {
+    const bounds = dialog.getBoundingClientRect();
+    return dialog.scrollWidth <= dialog.clientWidth && bounds.left >= 0 && bounds.right <= window.innerWidth;
+  }), "word consultation fits at 320px").toBe(true);
+  await expect(reference.locator(".reference-word")).toHaveCount(first.cards.length);
+  for (const card of first.cards) {
+    await expect(reference).toContainText(card.de);
+    await expect(reference).toContainText(card.es);
+    await expect(reference).toContainText(card.note);
+  }
+  await page.setViewportSize(testInfo.project.use.viewport);
+  if (captureReference)
+    await page.screenshot({ path: `.qa/quiz-consult-${testInfo.project.name}.png`, fullPage: false });
+  await reference.getByRole("button", { name: `Escuchar ${first.cards[0].de}`, exact: true }).click();
+  await expect(reference.locator(".reference-audio-status")).toBeVisible();
+  await expect(reference.locator(".reference-audio-status")).toContainText("Añade una voz alemana");
+  await reference.getByRole("button", { name: "Volver al quiz", exact: true }).click();
+  await expect(reference).not.toBeVisible();
+  await expect(consult).toBeFocused();
+  await expect(selected).toHaveClass(/selected/);
+  await expect(page.locator(".exercise-stage h1")).toHaveText(first.exercises[0].prompt);
+  expect(await progressSnapshot()).toEqual(beforeConsult);
+  await consult.click();
+  await expect(reference).toBeVisible();
+  await expect(reference.locator(".reference-audio-status")).toBeEmpty();
+  await page.keyboard.press("Escape");
+  await expect(reference).not.toBeVisible();
+
+  await page.getByRole("button", { name: "Comprobar", exact: true }).click();
+  await expect(page.locator(".answer-feedback")).toContainText("Vamos a aprender de esta.");
+  const afterAnswer = await progressSnapshot();
+  await consult.click();
+  await expect(reference).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(reference).not.toBeVisible();
+  await expect(consult).toBeFocused();
+  await expect(selected).toBeDisabled();
+  await expect(page.locator(".answer-feedback")).toContainText("Vamos a aprender de esta.");
+  expect(await progressSnapshot()).toEqual(afterAnswer);
+  await page.getByRole("button", { name: "Continuar", exact: true }).click();
+  await answer(page, first.exercises[1]);
+  await page.getByRole("button", { name: "Continuar", exact: true }).click();
+
+  // Preserve a draft, including special characters, when the consultation is dismissed.
+  const written = page.getByRole("textbox", { name: "Tu respuesta en alemán" });
+  await written.fill("Mir geht es gü");
+  await consult.click();
+  await expect(reference).toBeVisible();
+  await reference.getByRole("button", { name: "Cerrar consulta", exact: true }).click();
+  await expect(written).toHaveValue("Mir geht es gü");
+  await expect(page.locator(".exercise-stage h1")).toHaveText(first.exercises[2].prompt);
+  await answer(page, first.exercises[2]);
+  await page.getByRole("button", { name: "Continuar", exact: true }).click();
+
+  const order = first.exercises[3];
+  for (const token of order.tokens.slice(0, 2))
+    await page.locator(".token-bank").getByRole("button", { name: token, exact: true }).click();
+  const partialSentence = await page.locator(".sentence-output").innerText();
+  await consult.click();
+  await expect(reference).toBeVisible();
+  await reference.getByRole("button", { name: "Volver al quiz", exact: true }).click();
+  await expect(page.locator(".sentence-output")).toHaveText(partialSentence, { useInnerText: true });
+  for (const token of order.tokens.slice(0, 2))
+    await expect(page.locator(".token-bank").getByRole("button", { name: token, exact: true, includeHidden: true })).toBeDisabled();
+  for (const token of order.tokens.slice(2))
+    await page.locator(".token-bank").getByRole("button", { name: token, exact: true }).click();
+  await page.getByRole("button", { name: "Comprobar", exact: true }).click();
+  await expect(page.locator(".answer-feedback")).toContainText("¡Bien! Sehr gut.");
+  await page.getByRole("button", { name: "Continuar", exact: true }).click();
+  for (const exercise of first.exercises.slice(4)) {
+    await answer(page, exercise);
+    await page.getByRole("button", { name: "Continuar", exact: true }).click();
+  }
+
+  // The one mistake still appears exactly once in the second round.
+  await expect(page.locator(".exercise-kind")).toContainText("SEGUNDA VUELTA");
+  await answer(page, first.exercises[0]);
+  await page.getByRole("button", { name: "Continuar", exact: true }).click();
+  await expect(page.locator(".session-finish")).toContainText("Acertaste 5 de 6");
+  expect(await progressSnapshot()).toEqual({ xp: 63, answers: 7 });
+  expect(errors).toEqual([]);
+});
+
 test("dictionary, settings, backup import/export and reset use real persisted data", async ({
   page,
 }) => {
