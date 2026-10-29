@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-29T02:32:37Z",
+  "title": "Design System: Wort",
+  "extensions": {
+    "colorMeta": {
+      "purple": {"role":"primary","displayName":"Violeta de acción","tonalRamp":["oklch(15% .18 290)","oklch(27% .18 290)","oklch(38% .18 290)","oklch(50% .18 290)","oklch(61% .18 290)","oklch(73% .18 290)","oklch(84% .18 290)","oklch(95% .18 290)"]},
+      "purple-dark": {"role":"primary","displayName":"Violeta profundo","tonalRamp":["oklch(15% .14 290)","oklch(27% .14 290)","oklch(38% .14 290)","oklch(50% .14 290)","oklch(61% .14 290)","oklch(73% .14 290)","oklch(84% .14 290)","oklch(95% .14 290)"]},
+      "lilac": {"role":"secondary","displayName":"Lila de apoyo","tonalRamp":["oklch(15% .03 295)","oklch(27% .03 295)","oklch(38% .03 295)","oklch(50% .03 295)","oklch(61% .03 295)","oklch(73% .03 295)","oklch(84% .03 295)","oklch(95% .03 295)"]},
+      "mint": {"role":"secondary","displayName":"Menta de conexión","tonalRamp":["oklch(15% .07 140)","oklch(27% .07 140)","oklch(38% .07 140)","oklch(50% .07 140)","oklch(61% .07 140)","oklch(73% .07 140)","oklch(84% .07 140)","oklch(95% .07 140)"]},
+      "ink": {"role":"neutral","displayName":"Tinta ciruela","tonalRamp":["oklch(15% .025 295)","oklch(27% .025 295)","oklch(38% .025 295)","oklch(50% .025 295)","oklch(61% .025 295)","oklch(73% .025 295)","oklch(84% .025 295)","oklch(95% .025 295)"]},
+      "muted": {"role":"neutral","displayName":"Tinta de apoyo","tonalRamp":["oklch(15% .025 295)","oklch(27% .025 295)","oklch(38% .025 295)","oklch(50% .025 295)","oklch(61% .025 295)","oklch(73% .025 295)","oklch(84% .025 295)","oklch(95% .025 295)"]},
+      "paper": {"role":"neutral","displayName":"Papel frío","tonalRamp":["oklch(15% .008 295)","oklch(27% .008 295)","oklch(38% .008 295)","oklch(50% .008 295)","oklch(61% .008 295)","oklch(73% .008 295)","oklch(84% .008 295)","oklch(95% .008 295)"]},
+      "line": {"role":"neutral","displayName":"Separador lila grisáceo","tonalRamp":["oklch(15% .015 295)","oklch(27% .015 295)","oklch(38% .015 295)","oklch(50% .015 295)","oklch(61% .015 295)","oklch(73% .015 295)","oklch(84% .015 295)","oklch(95% .015 295)"]},
+      "white": {"role":"neutral","displayName":"Superficie blanca","tonalRamp":["oklch(15% 0 0)","oklch(27% 0 0)","oklch(38% 0 0)","oklch(50% 0 0)","oklch(61% 0 0)","oklch(73% 0 0)","oklch(84% 0 0)","oklch(95% 0 0)"]}
+    },
+    "typographyMeta": {
+      "display":{"displayName":"Título de página","purpose":"Título principal; 36px en celular y 33px bajo 370px."},
+      "headline":{"displayName":"Título de superficie","purpose":"Encabezado de bienvenida y bloques de contenido."},
+      "body":{"displayName":"Texto de interfaz","purpose":"Explicaciones, notas y párrafos legibles sin fuente externa."},
+      "label":{"displayName":"Etiqueta de control","purpose":"Texto de botones y navegación."}
+    },
+    "shadows":[{"name":"toast","value":"0 8px 24px #30243f25","purpose":"Separar el aviso flotante del contenido; las tarjetas son planas."}],
+    "motion":[
+      {"name":"card-arrive","value":".35s cubic-bezier(.16,1,.3,1)","purpose":"Entrada de tarjeta desde translateY(9px) y clip-path inset(0 0 6px); desactivada con movimiento reducido."},
+      {"name":"button-state","value":"background .18s, transform .18s","purpose":"Cambio de fondo; el botón presionado baja 1px."},
+      {"name":"toast-state","value":"opacity .2s, transform .2s","purpose":"Entrada y salida del aviso de estado."}
+    ],
+    "breakpoints":[
+      {"name":"wide","value":"1600px"},
+      {"name":"compact-desktop","value":"1250px"},
+      {"name":"stacked-home","value":"1050px"},
+      {"name":"mobile","value":"760px"},
+      {"name":"narrow-mobile","value":"370px"}
+    ]
+  },
+  "components": [
+    {
+      "name":"Botón principal","kind":"button","refersTo":"button-primary",
+      "description":"Acción principal de lección o práctica.",
+      "html":"<button class=\"ds-primary\">Empezar mi primera lección <svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 12h16m-6-6 6 6-6 6\"/></svg></button>",
+      "css":".ds-primary{display:inline-flex;align-items:center;justify-content:center;gap:12px;background:var(--purple,#5940c6);color:var(--white,#fff);border:0;border-radius:8px;padding:13px 18px;min-height:47px;font:700 12px Arial,Helvetica,sans-serif;cursor:pointer;transition:background .18s,transform .18s}.ds-primary:hover{background:var(--purple-dark,#41308d)}.ds-primary:active{transform:translateY(1px)}.ds-primary:focus-visible{outline:3px solid #a27be8;outline-offset:4px}.ds-primary:disabled{opacity:.5;cursor:default}"
+    },
+    {
+      "name":"Botón secundario","kind":"button","refersTo":"button-secondary",
+      "description":"Acciones complementarias como volver o exportar una copia.",
+      "html":"<button class=\"ds-secondary\">Exportar progreso</button>",
+      "css":".ds-secondary{display:inline-flex;align-items:center;justify-content:center;gap:12px;background:#eeebf5;color:var(--purple-dark,#41308d);border:0;border-radius:8px;padding:13px 18px;min-height:47px;font:700 12px Arial,Helvetica,sans-serif;cursor:pointer;transition:background .18s,transform .18s}.ds-secondary:hover{background:#e3dcf4}.ds-secondary:active{transform:translateY(1px)}.ds-secondary:focus-visible{outline:3px solid #a27be8;outline-offset:4px}.ds-secondary:disabled{opacity:.5;cursor:default}"
+    },
+    {
+      "name":"Búsqueda de palabras","kind":"input","refersTo":"search",
+      "description":"Campo de búsqueda en español o alemán.",
+      "html":"<label class=\"ds-search-label\" for=\"ds-word-search\">Buscar en alemán o español</label><input class=\"ds-search\" id=\"ds-word-search\" type=\"search\" placeholder=\"Prueba con «hola», «ich» o «café»\" />",
+      "css":".ds-search-label{display:block;margin-bottom:10px;color:var(--muted,#6b657b);font:12px Arial,Helvetica,sans-serif}.ds-search{width:100%;max-width:600px;border:1px solid #d4cce3;background:var(--white,#fff);padding:15px 17px;border-radius:9px;font:14px Arial,Helvetica,sans-serif;color:var(--ink,#282339)}.ds-search::placeholder{color:#756d80}.ds-search:focus-visible{outline:3px solid #a27be8;outline-offset:4px}"
+    },
+    {
+      "name":"Navegación activa","kind":"nav","refersTo":"navigation-active",
+      "description":"Sección actual en la barra lateral de escritorio.",
+      "html":"<button class=\"ds-nav\" aria-current=\"page\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m3 10 9-7 9 7v10H3z\"/><path d=\"M9 20v-7h6v7\"/></svg>Aprender</button>",
+      "css":".ds-nav{display:flex;align-items:center;gap:13px;width:100%;min-height:49px;border:0;border-radius:9px;background:var(--lilac,#eee9fc);color:var(--purple,#5940c6);padding:14px 15px;text-align:left;font:600 14px Arial,Helvetica,sans-serif;cursor:pointer}.ds-nav:hover{background:var(--lilac,#eee9fc)}.ds-nav:focus-visible{outline:3px solid #a27be8;outline-offset:4px}"
+    },
+    {
+      "name":"Indicador de nivel","kind":"chip",
+      "description":"Indicador informativo de la ruta inicial; no es un control.",
+      "html":"<span class=\"ds-level\"><span></span>Desde cero · A0 → A1</span>",
+      "css":".ds-level{display:inline-flex;align-items:center;gap:7px;border:1px solid #dcd7e9;border-radius:25px;padding:10px 13px;color:var(--ink,#282339);font:11px Arial,Helvetica,sans-serif;white-space:nowrap}.ds-level>span{width:6px;height:6px;background:var(--purple,#5940c6);border-radius:50%}"
+    },
+    {
+      "name":"Tarjeta de estudio","kind":"card","refersTo":"flashcard",
+      "description":"Una expresión alemana, audio, traducción y nota.",
+      "html":"<article class=\"ds-card\"><span class=\"ds-lang\">DEUTSCH</span><h2 lang=\"de\">Hallo!</h2><button class=\"ds-listen\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m11 4-6 5H2v6h3l6 5zM15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14\"/></svg>Escuchar</button><span class=\"ds-divider\"></span><h3>¡Hola!</h3><p>Saludo cotidiano. Con personas desconocidas, Guten Tag puede ser una opción más formal.</p></article>",
+      "css":".ds-card{max-width:650px;background:var(--white,#fff);color:var(--ink,#282339);border-radius:16px;padding:36px 32px 32px;text-align:center}.ds-lang{font:10px Arial,Helvetica,sans-serif;color:#8e819f;letter-spacing:.13em}.ds-card h2{font:700 43px/1.08 'Trebuchet MS',Arial,sans-serif;letter-spacing:-.04em;margin:17px 0 21px}.ds-card h3{font:700 23px/1.2 'Trebuchet MS',Arial,sans-serif;margin:0 0 12px}.ds-card p{font:13px/1.6 Arial,Helvetica,sans-serif;color:var(--muted,#6b657b);max-width:50ch;margin:0 auto}.ds-listen{display:inline-flex;align-items:center;gap:10px;background:var(--lilac,#eee9fc);color:var(--purple,#5940c6);border:0;border-radius:25px;padding:12px 16px;min-height:44px;font:12px Arial,Helvetica,sans-serif;cursor:pointer}.ds-listen:focus-visible{outline:3px solid #a27be8;outline-offset:4px}.ds-divider{display:block;width:35px;height:3px;background:var(--mint,#c4f1be);margin:28px auto}"
+    },
+    {
+      "name":"Fila de lección","kind":"custom",
+      "description":"Ruta numerada que une tema, subtítulo y duración.",
+      "html":"<button class=\"ds-lesson\"><span class=\"ds-number\">01</span><span class=\"ds-info\"><strong>La primera conversación</strong><span>Saluda y rompe el hielo</span></span><span class=\"ds-duration\">8 min</span></button>",
+      "css":".ds-lesson{display:flex;align-items:center;gap:21px;width:100%;min-height:89px;border:0;border-bottom:1px solid var(--line,#e6e3ed);background:var(--white,#fff);padding:21px 23px;text-align:left;cursor:pointer;transition:background .2s}.ds-lesson:hover{background:#f5f2fd}.ds-lesson:focus-visible{outline:3px solid #a27be8;outline-offset:4px}.ds-number{width:39px;height:39px;display:grid;place-items:center;flex-shrink:0;background:var(--purple,#5940c6);color:var(--white,#fff);border-radius:11px;font:700 13px Arial,Helvetica,sans-serif}.ds-info{display:flex;flex-direction:column;gap:7px;flex:1;color:var(--ink,#282339);font:14px Arial,Helvetica,sans-serif}.ds-info>span{font-size:12px;color:var(--muted,#6b657b)}.ds-duration{font:11px Arial,Helvetica,sans-serif;color:var(--muted,#6b657b)}"
+    }
+  ],
+  "narrative": {
+    "northStar":"Taller de conversación",
+    "overview":"Esta es una descripción del diseño implementado, no una preferencia estética confirmada por el usuario. La interfaz usa tinta violeta, superficies lilas y marcas menta para conectar una palabra alemana con su significado en español. Los títulos redondeados dan carácter; los controles conservan formas sencillas y reconocibles.\n\nLa unidad visual principal es una expresión que se escucha, se entiende y se practica. Las listas dan continuidad al curso y las tarjetas reservan espacio para una sola tarea. La ilustración tipográfica de bienvenida se omite en celular para proteger la lectura.",
+    "keyCharacteristics":["Superficies planas diferenciadas por tono.","Títulos redondeados y texto de interfaz de sistema.","Una expresión central por tarjeta de estudio.","Navegación lateral en escritorio y barra inferior en celular."],
+    "rules":[],
+    "dos":["**Do** mantener la expresión y su traducción como foco de las tarjetas de estudio.","**Do** conservar violeta para acciones y estados activos, y menta para conexiones y confirmaciones.","**Do** incluir etiquetas accesibles en botones de icono y foco visible en controles.","**Do** comprobar palabras alemanas largas y las teclas de caracteres especiales en celular."],
+    "donts":["**Don't** poner elementos decorativos encima de títulos o controles en celular.","**Don't** añadir sombras a las tarjetas principales sin cambiar deliberadamente el sistema plano actual.","**Don't** depender solo del color para explicar una respuesta correcta o incorrecta.","**Don't** eliminar el espacio inferior que evita que la barra móvil cubra el contenido final."]
+  }
+}
