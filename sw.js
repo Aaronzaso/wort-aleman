@@ -1,9 +1,10 @@
-const CACHE = "wort-v2.0.3-grammar-help";
+const CACHE = "wort-v2.1-practice-library";
 const ASSETS = [
   "./",
   "./index.html",
   "./src/app.js",
   "./src/style.css",
+  "./src/theme.css",
   "./src/curriculum.js",
   "./src/learning.js",
   "./manifest.webmanifest",

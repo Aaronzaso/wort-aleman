@@ -151,7 +151,7 @@ test("complete a lesson, correct a mistake, preserve progress and schedule revie
   );
   expect(again.due - Date.now()).toBeGreaterThan(290000);
   expect(again.due - Date.now()).toBeLessThanOrEqual(300000);
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await page.getByRole("button", { name: "Guardar y volver al inicio", exact: true }).click();
   await nav(page, "progress");
   await expect(page.locator(".stats-strip")).toContainText("8");
   expect(errors).toEqual([]);
@@ -428,8 +428,9 @@ test("service worker serves the app and lesson modules without a connection", as
     .getByRole("button", { name: "Empezar mi primera lección" })
     .click();
   await expect(page.locator(".flashcard h1")).toHaveText("Hallo!");
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await page.getByRole("button", { name: "Guardar y volver al inicio", exact: true }).click();
   await nav(page, "words");
-  await expect(page.locator(".word-row")).toHaveCount(64);
+  await page.getByRole("button", {name:"Ver todas las palabras",exact:true}).click();
+  await expect(page.locator(".word-row")).toHaveCount(80);
   await context.setOffline(false);
 });

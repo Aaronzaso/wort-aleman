@@ -16,7 +16,17 @@
     <link rel="icon" type="image/svg+xml" href="./icons/icon.svg" />
     <link rel="apple-touch-icon" href="./icons/icon-192.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
+    <script>
+      (() => {
+        let saved;
+        try { saved = localStorage.getItem("wort-theme"); } catch {}
+        const dark = saved === "dark" || (saved !== "light" && window.matchMedia?.("(prefers-color-scheme: dark)")?.matches);
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+        document.documentElement.style.colorScheme = dark ? "dark" : "light";
+      })();
+    </script>
     <link rel="stylesheet" href="./src/style.css" />
+    <link rel="stylesheet" href="./src/theme.css" />
   </head>
   <body>
     <!-- THESIS: A conversation workshop turns the first German words into everyday practice.

@@ -69,8 +69,34 @@ function validDateKey(key) {
   return dateKey(date) === key;
 }
 
+const recallGrades = ["again", "hard", "good"];
+
+/** A scheduled date alone is not evidence that the learner recalled a word. */
+function cleanRecall(value) {
+  if (
+    !isObject(value) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(value)) ||
+    !Object.hasOwn(value, "lastGrade") ||
+    !recallGrades.includes(value.lastGrade) ||
+    !Object.hasOwn(value, "at") ||
+    !finite(value.at) ||
+    value.at < 0 ||
+    value.at > MAX_COUNTER
+  )
+    return null;
+  const counts = Object.fromEntries(
+    recallGrades.map((grade) => [
+      grade,
+      Object.hasOwn(value, grade) ? counter(value[grade]) : 0,
+    ]),
+  );
+  if (!counts[value.lastGrade]) return null;
+  return { ...counts, lastGrade: value.lastGrade, at: value.at };
+}
+
 function cleanReview(value) {
   if (!isObject(value) || !finite(value.due) || value.due < 0) return null;
+  const recall = Object.hasOwn(value, "recall") ? cleanRecall(value.recall) : null;
   return {
     due: value.due,
     interval:
@@ -79,6 +105,7 @@ function cleanReview(value) {
         : 1,
     repetitions: counter(value.repetitions),
     ease: finite(value.ease) ? clamp(value.ease, 1.3, 3.5) : 2.5,
+    ...(recall ? { recall } : {}),
   };
 }
 
@@ -198,6 +225,42 @@ export function scheduleReview(previous, grade, now = Date.now()) {
   }
   interval = Math.min(interval, 36500);
   return { due: now + interval * DAY, interval, repetitions, ease };
+}
+
+/** Record a real answer/self-assessment in addition to updating its review date. */
+export function recordRecall(previous, grade, now = Date.now()) {
+  const next = scheduleReview(previous, grade, now);
+  if (now > MAX_COUNTER)
+    throw new RangeError("Momento de repaso no válido.");
+  const previousRecall = cleanReview(previous)?.recall;
+  const counts = Object.fromEntries(
+    recallGrades.map((key) => [key, previousRecall?.[key] ?? 0]),
+  );
+  counts[grade] = counter(counts[grade] + 1);
+  return { ...next, recall: { ...counts, lastGrade: grade, at: now } };
+}
+
+/** Last observed recall, not a proficiency estimate or an invented success rate. */
+export function reviewInsight(review, now = Date.now()) {
+  if (!finite(now) || now < 0)
+    throw new RangeError("Momento de repaso no válido.");
+  const clean = cleanReview(review);
+  const recall = clean?.recall;
+  const counts = Object.fromEntries(
+    recallGrades.map((grade) => [grade, recall?.[grade] ?? 0]),
+  );
+  return {
+    status: !recall
+      ? "unmeasured"
+      : recall.lastGrade === "good"
+        ? "remembered"
+        : "needs-work",
+    due: clean !== null && clean.due <= now,
+    attempts: counter(counts.again + counts.hard + counts.good),
+    counts,
+    lastGrade: recall?.lastGrade ?? null,
+    reviewedAt: recall?.at ?? null,
+  };
 }
 
 /** Presence of a valid review entry means a card has been studied. New cards stay out. */

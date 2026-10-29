@@ -11,6 +11,19 @@ colors:
   mint: "#c4f1be"
   line: "#e6e3ed"
   white: "#fff"
+  dark-ink: "#f0ecfa"
+  dark-muted: "#c0b7cf"
+  dark-purple: "#c1afff"
+  dark-purple-dark: "#d8caff"
+  dark-lilac: "#332b49"
+  dark-paper: "#18151f"
+  dark-mint: "#9ed7a4"
+  dark-line: "#4d435f"
+  dark-surface: "#262136"
+  dark-action: "#7053c9"
+  recall-needs-work: "#b54b35"
+  recall-remembered: "#418263"
+  recall-unmeasured: "#dbd6e7"
 typography:
   display:
     fontFamily: "Trebuchet MS, Arial, sans-serif"
@@ -101,6 +114,8 @@ El violeta concentra acciones y estados activos; el lila agrupa contenido y la m
 
 Los estados de ejercicio también usan verde para acierto y rosa para error, acompañados siempre de texto explícito. El panel de hábito usa una superficie ciruela (`#35294f`) con texto claro.
 
+El tema oscuro conserva la misma jerarquía con fondo ciruela oscuro, superficies algo más claras y tinta clara. Los roles `dark-*` corresponden a las sustituciones de `theme.css`; las acciones rellenas mantienen blanco sobre `dark-action`, mientras enlaces e iconos usan el violeta claro. El mapa de repaso distingue refuerzo, recuerdo y falta de valoración mediante los tres roles `recall-*`, siempre con leyenda escrita y recuentos accesibles.
+
 ## Typography
 
 Los títulos usan Trebuchet MS con Arial de respaldo; la interfaz usa Arial, Helvetica y sans-serif. No hay fuentes externas.
@@ -118,6 +133,8 @@ Los puntos de adaptación existentes son (1600px), (1250px), (1050px), (760px) y
 
 Las prácticas se centran en una columna de hasta (650px). Los grupos relacionados usan separaciones cortas; los cambios de sección tienen más aire. Las filas de lección mantienen un orden numerado real y no bloquean el acceso a otras lecciones.
 
+Las carpetas y la selección de categorías usan dos columnas en escritorio y una en celular. El mapa de repaso alinea categoría, barra apilada y recuento en cada fila; en celular reduce las columnas auxiliares sin ocultar los nombres. Las prácticas pausadas se agrupan en una superficie lila antes de la ruta del inicio.
+
 ## Elevation & Depth
 
 Las superficies son planas: el contraste tonal y los separadores construyen la jerarquía. Las tarjetas principales no tienen sombra. El aviso flotante es la excepción funcional, con una sombra desplazada (`0 8px 24px #30243f25`) que lo separa del contenido mientras comunica un estado.
@@ -130,6 +147,10 @@ Los paneles comparten esquinas suaves del rol panel. Los botones son rectángulo
 
 - **Botones:** principal violeta, secundario lila grisáceo y acciones de texto sin contenedor. Altura mínima base (47px); al presionar se desplazan (1px). Los botones deshabilitados reducen opacidad.
 - **Navegación:** icono de línea más etiqueta. El elemento activo usa violeta y fondo lila en escritorio; en celular usa una marca superior violeta. Ajustes tiene un engranaje visible y nombre accesible.
+- **Apariencia:** sol/luna y engranaje son controles separados, con área táctil mínima de (44px). El icono de apariencia nombra la acción del siguiente cambio; Ajustes ofrece claro, oscuro o sistema. La sustitución de color no reconstruye la práctica abierta.
+- **Prácticas pausadas:** panel lila con filas de título, palabra o pregunta pendiente y «Continuar». La navegación puede pausar sin bloquear el acceso al resto de la app; el panel explica que el punto exacto se conserva en este dispositivo.
+- **Carpetas de vocabulario:** botones blancos con icono de carpeta, nombre, cantidad y ejemplos. Al elegir una se muestra su lista y un regreso explícito a todas las carpetas. La selección múltiple de repaso usa casillas nativas; selección y foco siguen siendo visibles en ambos temas.
+- **Mapa de repaso:** barras horizontales apiladas para «Reforzar», «Recordadas» y «Sin valorar», con leyenda y nombre accesible que contiene las cantidades. Cada fila permite elegir su categoría; se muestra la última valoración observada, sin porcentajes de dominio.
 - **Búsqueda y escritura:** superficies blancas, bordes suaves y texto oscuro. La escritura alemana ofrece teclas ä, ö, ü y ß. El foco visible común es un contorno de (3px), desplazado (4px).
 - **Tarjeta de estudio:** expresión alemana grande, acción de audio, divisor menta, traducción española y explicación breve. La entrada usa desplazamiento vertical (9px) y recorte durante (.35s); se elimina con movimiento reducido.
 - **Opciones de respuesta:** filas blancas con letra de referencia y selección violeta. La corrección añade texto explicativo y un icono de acierto cuando corresponde.

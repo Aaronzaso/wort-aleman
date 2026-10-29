@@ -1,0 +1,179 @@
+/* Appearance is separate from account/learning state. Load after style.css. */
+:root {
+  color-scheme: light;
+  --surface: #fff;
+  --surface-hover: #f5f2fd;
+  --good: #2c5d2f;
+  --good-surface: #e1f0dc;
+  --warning: #89531b;
+  --warning-surface: #fbefda;
+  --danger: #9c3b41;
+  --danger-surface: #f9ebeb;
+}
+.theme-toggle {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--lilac);
+  color: var(--purple);
+}
+.theme-toggle:hover {
+  background: var(--surface-hover);
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #f0ecfa;
+  --muted: #c0b7cf;
+  --purple: #c1afff;
+  --purple-dark: #d8caff;
+  --lilac: #332b49;
+  --paper: #18151f;
+  --mint: #9ed7a4;
+  --line: #4d435f;
+  --white: #262136;
+  --surface: #262136;
+  --surface-hover: #3b314f;
+  --good: #c4ebc9;
+  --good-surface: #213e2e;
+  --warning: #f2d1a0;
+  --warning-surface: #46371f;
+  --danger: #ffd2cb;
+  --danger-surface: #4a2931;
+  background: var(--paper);
+  color: var(--ink);
+}
+:root[data-theme="dark"] body {
+  background: var(--paper);
+}
+:root[data-theme="dark"] :is(.sidebar, .route-list, .lesson-row, .word-list, .activity-panel, .flashcard, .answer-option, .exercise-stage textarea, .accent-keys > button, .sentence-output button, .token-bank button, .review-grades > button, .account-sheet, .account-sheet input, .google-signin, .search, .settings-section select, .mobile-nav) {
+  background: var(--surface);
+  color: var(--ink);
+}
+:root[data-theme="dark"] :is(.search, .account-sheet input, .google-signin, .settings-section select, .exercise-stage textarea, .accent-keys > button, .sentence-output button, .token-bank button, .review-grades > button, .level-pill, .sentence-output) {
+  border-color: var(--line);
+}
+:root[data-theme="dark"] :is(input, textarea)::placeholder {
+  color: #b4a9c5;
+}
+:root[data-theme="dark"] :is(button, a, select, input, textarea, summary):focus-visible {
+  outline-color: #c5acff;
+}
+:root[data-theme="dark"] :is(.welcome-panel, .account-promise) {
+  background: var(--lilac);
+}
+:root[data-theme="dark"] :is(.welcome-copy > p, .small-meta, .art-translation, .lesson-tag, .account-promise p, .account-promise li, .review-count > span, .review-intro p, .stats-strip span, .stats-strip small, .revealed-answer p, .breadcrumb > span, .card-lang, .row-arrow) {
+  color: var(--muted);
+}
+:root[data-theme="dark"] :is(.secondary, .avatar) {
+  background: var(--lilac);
+  color: var(--purple-dark);
+}
+:root[data-theme="dark"] :is(.secondary, .avatar, .icon-button, .tip-help-button, .header-account, .theme-toggle):hover,
+:root[data-theme="dark"] .nav-item:hover,
+:root[data-theme="dark"] .lesson-row:hover,
+:root[data-theme="dark"] .google-signin:hover,
+:root[data-theme="dark"] .answer-option:hover:not(:disabled),
+:root[data-theme="dark"] .review-grades > button:hover {
+  background: var(--surface-hover);
+}
+:root[data-theme="dark"] .answer-option.selected {
+  background: var(--lilac);
+  border-color: var(--purple);
+}
+/* Keep white text on a darker violet for filled actions. */
+:root[data-theme="dark"] :is(.primary, .audio-exercise, .nav-count, .brand-symbol, .lesson-row:first-child .lesson-number, .answer-option.selected > span) {
+  background: #7053c9;
+  color: #fff;
+}
+:root[data-theme="dark"] .primary:hover {
+  background: #6245be;
+}
+:root[data-theme="dark"] .lesson-number {
+  background: var(--lilac);
+  color: var(--muted);
+}
+:root[data-theme="dark"] .is-complete .lesson-number {
+  background: #24472f !important;
+  color: #b4e8ba !important;
+}
+:root[data-theme="dark"] .spanish-tip {
+  background: #23372b;
+}
+:root[data-theme="dark"] :is(.spanish-tip p, .tip-symbol) {
+  color: #bed7c1;
+}
+:root[data-theme="dark"] :is(.translation-mark, .promise-translation, .finish-symbol) {
+  background: var(--mint);
+  color: #173b21;
+}
+:root[data-theme="dark"] :is(.art-hallo > span:first-child, .promise-word > span) {
+  color: #b7a1ef;
+}
+:root[data-theme="dark"] .day-track {
+  background: var(--lilac);
+}
+:root[data-theme="dark"] .day-track > span {
+  background: #b7a3f2;
+}
+:root[data-theme="dark"] .session-progress {
+  background: var(--line);
+}
+:root[data-theme="dark"] .answer-feedback {
+  background: var(--danger-surface);
+  color: var(--danger);
+}
+:root[data-theme="dark"] .answer-feedback.correct {
+  background: var(--good-surface);
+  color: var(--good);
+}
+:root[data-theme="dark"] .answer-option .icon,
+:root[data-theme="dark"] .account-message {
+  color: #b4e8ba;
+}
+:root[data-theme="dark"] .revealed-answer .icon-button {
+  background: var(--surface);
+}
+:root[data-theme="dark"] .account-message.error {
+  color: var(--danger);
+  background: var(--danger-surface);
+}
+:root[data-theme="dark"] :is(.text-danger, .settings-section .storage-warning) {
+  color: #ffb4b8;
+}
+:root[data-theme="dark"] .danger {
+  background: #993c4d;
+  color: #fff;
+}
+:root[data-theme="dark"] :is(.lesson-reference, .lesson-help)::backdrop {
+  background: #08060dc9;
+}
+:root[data-theme="dark"] #toast {
+  background: #403451;
+  color: var(--ink);
+  box-shadow: 0 8px 24px #0006;
+}
+:root[data-theme="dark"] .sync-dot.saved {
+  background: #8bd493;
+}
+:root[data-theme="dark"] .sync-dot.error,
+:root[data-theme="dark"] .sync-dot.offline {
+  background: #e0b872;
+}
+@media (max-width: 370px) {
+  .header-right {
+    gap: 5px;
+  }
+  .theme-toggle {
+    width: 44px;
+    min-width: 44px;
+  }
+  .header-right .streak { display: none; }
+}
+@media (max-width: 760px) {
+  .avatar { width: 44px; min-width: 44px; height: 44px; }
+}

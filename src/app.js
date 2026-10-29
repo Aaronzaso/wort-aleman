@@ -1,6 +1,10 @@
 import { lessons, pronunciationTips } from "./curriculum.js";
 import { createAccount, syncLabels } from "./account.js";
 import { createProgressController } from "./cloud-progress.js";
+import { getVocabularyCards, vocabularyCategories } from "./vocabulary.js";
+import { renderFolderContent, renderReviewDashboard } from "./library-ui.js";
+import { createPracticeStore, draftId } from "./practice-drafts.js";
+import { initTheme, themeButtonMarkup } from "./theme.js";
 import {
   initialState,
   hydrateState,
@@ -10,6 +14,9 @@ import {
   scheduleReview,
   dueCards,
   checkAnswer,
+  normalizeAnswer,
+  recordRecall,
+  reviewInsight,
 } from "./learning.js";
 
 const $ = (s) => document.querySelector(s);
@@ -28,7 +35,7 @@ const icons = {
     '<path d="M20 7H8a5 5 0 0 0-5 5m1 5h12a5 5 0 0 0 5-5M17 3l4 4-4 4M7 13l-4 4 4 4"/>',
   chart: '<path d="M4 20V10m8 10V4m8 16v-7"/>',
   settings:
-    '<circle cx="12" cy="12" r="4"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2"/>',
+    '<path d="m9 3-.5 2.5-2 1.2L4 6l-2 3 2 1.8v2.4L2 15l2 3 2.5-.7 2 1.2L9 21h6l.5-2.5 2-1.2 2.5.7 2-3-2-1.8v-2.4L22 9l-2-3-2.5.7-2-1.2L15 3z"/><circle cx="12" cy="12" r="3"/>',
   arrow: '<path d="M4 12h16m-6-6 6 6-6 6"/>',
   sound:
     '<path d="m11 4-6 5H2v6h3l6 5zM15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/>',
@@ -64,13 +71,36 @@ let view = [
   ? location.hash.slice(1)
   : "learn";
 let session = null,
+  sessionOwner = null,
+  activeFolder = null,
+  selectedCategories = new Set(),
   wordFilter = "",
   installPrompt = null,
   toastTimer,
   voices = [];
-const cards = lessons.flatMap((l) =>
-  l.cards.map((c) => ({ ...c, lessonId: l.id, lessonTitle: l.title })),
-);
+const cards = getVocabularyCards(lessons);
+const drafts = createPracticeStore({
+  getItem: key => localStorage.getItem(key),
+  setItem: (key, value) => localStorage.setItem(key, value),
+  removeItem: key => localStorage.removeItem(key),
+}, lessons, cards);
+const owner = () => account?.getUser()?.id || null;
+function checkpointSession() {
+  if (!session) return;
+  try { drafts.save(sessionOwner, session); }
+  catch { toast("No se pudo guardar esta práctica. Libera espacio en el navegador e inténtalo de nuevo."); }
+}
+function pauseSession() {
+  if (!session) return;
+  checkpointSession();
+  session = null;
+  window.speechSynthesis?.cancel();
+}
+function renderDrafts() {
+  const saved = drafts.list(owner());
+  if (!saved.length) return "";
+  return `<section class="resume-panel"><h2>Continúa donde ibas</h2><p>Prácticas guardadas en este dispositivo. Tus respuestas ya realizadas también se guardan en tu progreso.</p>${saved.map(item => `<button class="resume-practice" data-resume="${esc(item.id)}"><span><strong>${esc(item.type === "lesson" ? lessons.find(l => l.id === item.lessonId)?.title : "Repaso de palabras")}</strong><small>${item.type === "lesson" ? item.stage === "study" ? `Palabra ${item.index + 1}` : `Pregunta ${item.exerciseIndex + 1}` : `Palabra ${item.index + 1} de ${item.itemIds.length}`}</small></span><span>Continuar →</span></button>`).join("")}</section>`;
+}
 const persist = () => {
   if (cloud) {
     state = cloud.setState(state);
@@ -120,6 +150,7 @@ function nav() {
     .join("");
 }
 function render() {
+  checkpointSession();
   $("#app").innerHTML =
     `<aside class="sidebar"><a class="brand" href="#learn" aria-label="Wort, inicio"><span class="brand-symbol">w<span>•</span></span>wort<span class="brand-period">.</span></a><div class="language-label"><span class="german-flag" aria-hidden="true"></span>Alemán desde el español</div><nav aria-label="Navegación principal">${nav()}</nav><div class="sidebar-note"><span lang="de">Schritt für Schritt.</span><p>Paso a paso.<br>Una palabra a la vez.</p><span class="note-line"></span></div><button class="nav-item settings-nav ${view === "settings" ? "active" : ""}" data-view="settings">${icon("settings")}<span>Ajustes</span></button></aside><div class="workspace"><header class="topbar"><a href="#learn" class="mobile-brand">wort<span>.</span></a><span class="breadcrumb">Tu espacio de alemán <span>/</span> ${session ? "En práctica" : navItems.find((n) => n[0] === view)?.[2] || "Ajustes"}</span><div class="header-right"><span class="streak">${icon("spark")}<b>${getStreak(state)}</b><span>días de racha</span></span><button class="avatar" data-view="settings" aria-label="Abrir ajustes" title="Ajustes">${icon("settings")}</button></div></header><main id="main" tabindex="-1">${session ? renderSession() : renderView()}</main><footer class="site-footer"><span>Hecho para aprender. A tu ritmo.</span><span>Español → Deutsch ${icon("spark")}</span></footer></div><nav class="mobile-nav" aria-label="Navegación móvil">${nav()}</nav>`;
   const user = account?.getUser();
@@ -128,6 +159,10 @@ function render() {
     "afterbegin",
     `<button class="header-account" data-view="account" aria-label="${user ? "Abrir mi cuenta" : "Iniciar sesión"}"><span class="sync-dot ${user ? syncInfo.status : "local"}" aria-hidden="true"></span><span>${user ? "Mi cuenta" : "Entrar"}</span></button>`,
   );
+  $(".header-right").insertAdjacentHTML("beforeend", themeButtonMarkup());
+  if (!session && view === "words") $("#main").insertAdjacentHTML("beforeend", `<details class="pronunciation-guide"><summary>Guía de pronunciación</summary><div class="pronunciation-list">${pronunciationTips.map(t => `<article><button class="sound-word" data-speak="${esc(t.de)}" aria-label="Escuchar ${esc(t.de)}">${icon("sound")}<span lang="de">${esc(t.de)}</span></button><div><h3>${esc(t.title)}</h3><p>${esc(t.explanation)}</p></div></article>`).join("")}</div></details>`);
+  if (!session && view === "learn") $("#main").insertAdjacentHTML("afterbegin", renderDrafts());
+  if (!session && view === "settings") $("#main").insertAdjacentHTML("beforeend", '<section class="settings-section"><h2>Apariencia</h2><label for="theme-preference">Tema de Wort</label><select id="theme-preference"><option value="system">Como el dispositivo</option><option value="light">Claro</option><option value="dark">Oscuro</option></select></section>');
   $(".settings-nav").insertAdjacentHTML(
     "beforebegin",
     `<button class="nav-item account-nav ${view === "account" ? "active" : ""}" data-view="account">${icon("book")}<span>${user ? "Mi cuenta" : "Entrar a mi cuenta"}</span></button>`,
@@ -159,6 +194,7 @@ function render() {
     $("#main").insertAdjacentHTML("beforeend", renderTipHelpDialog(session.lesson));
   bind();
   account?.bind();
+  initTheme();
 }
 function renderView() {
   return (
@@ -179,29 +215,10 @@ function renderHome() {
     goal = state.settings.goal;
   return `<div class="page-heading"><div><h1>Tu alemán empieza<br>con un <span lang="de">Hallo.</span></h1><p>Un poco cada día. Un mundo por descubrir.</p></div><span class="level-pill"><span></span>Desde cero · A0 → A1</span></div><div class="home-top"><section class="welcome-panel" aria-labelledby="welcome-title"><div class="welcome-copy"><h2 id="welcome-title">${completed ? esc(next.title) : "Las grandes historias<br>empiezan con un hola."}</h2><p>${completed ? esc(next.summary) : "Escucha, entiende y di tus primeras palabras.<br>El español es tu punto de partida."}</p><button class="button primary" data-start="${next.id}">${completed ? "Seguir aprendiendo" : "Empezar mi primera lección"} ${icon("arrow")}</button><span class="small-meta">${icon("clock")} ${next.minutes} min aprox. <span>•</span> Sin prisa, sin presión</span></div><div class="word-art" aria-label="Hallo significa hola"><span class="art-hallo" lang="de">Hal<span>l</span>o<span class="art-dot">!</span></span><span class="translation-mark">hola ${icon("arrow")}</span><span class="art-speech" lang="de">Schön, dass du da bist.</span><span class="art-translation">Qué bueno que estés aquí.</span></div></section><aside class="daily-panel"><div class="daily-title">Tu pequeño gran hábito ${icon("spark")}</div><h2>${today}<span> / ${goal}</span></h2><p>respuestas practicadas hoy</p><div class="progress-track"><span style="width:${Math.min(100, (today / goal) * 100)}%"></span></div><p class="daily-message">${today >= goal ? "¡Meta cumplida! Cada paso cuenta." : "La constancia empieza<br>con unos minutos para ti."}</p><button class="daily-link" data-view="settings">Cambiar mi meta ${icon("arrow")}</button></aside></div><div class="section-heading"><div><h2>Tu ruta, paso a paso</h2><p>De tu primera palabra a situaciones de todos los días.</p></div><span class="route-total">${completed} de ${lessons.length} completadas</span></div><div class="route-list">${lessons.map((l, i) => `<button class="lesson-row ${state.completed.includes(l.id) ? "is-complete" : ""}" data-start="${l.id}"><span class="lesson-number">${state.completed.includes(l.id) ? icon("check") : String(i + 1).padStart(2, "0")}</span><span class="lesson-info"><strong>${esc(l.title)}</strong><span>${esc(l.subtitle)}</span></span><span class="lesson-duration">${l.minutes} min</span><span class="lesson-state">${state.completed.includes(l.id) ? "Practicar otra vez" : l.id === next.id ? "Empezar" : "Explorar"}</span><span class="row-arrow">${icon("arrow")}</span></button>`).join("")}</div><section class="spanish-tip"><span class="tip-symbol">ñ → ß</span><div><h3>Tu español viene contigo.</h3><p>Aprende qué se parece, qué cambia y dónde suelen aparecer las confusiones. Entender el porqué también es aprender.</p></div></section>`;
 }
-function renderReview() {
-  const items = due(),
-    learned = Object.keys(state.reviews).length;
-  return `<div class="page-heading"><div><h1>Que se quede<br>contigo.</h1><p>Intenta recordar antes de mirar la respuesta.</p></div>${icon("repeat", "heading-icon")}</div><section class="review-intro"><div class="review-count">${items.length}<span>palabras para repasar hoy</span></div><div><h2>${items.length ? "Un reencuentro con tus palabras." : learned ? "Vas al día. Sehr gut!" : "Tu memoria empieza aquí."}</h2><p>${items.length ? "Las palabras vuelven cuando toca reforzarlas. Tú decides cuánto te costó recordarlas." : learned ? "Tus próximos repasos aparecerán cuando llegue su fecha. También puedes practicar todas tus palabras ahora." : "Completa una lección para añadir sus palabras a tus repasos. Volverán mañana y se espaciarán a medida que las recuerdes."}</p><button class="button primary" ${items.length ? 'data-review="due"' : learned ? 'data-review="all"' : `data-start="${lessons[0].id}"`}>${items.length ? "Empezar repaso" : learned ? "Practicar mis palabras" : "Ir a mi primera lección"} ${icon("arrow")}</button></div></section><div class="section-heading"><h2>Escuchar. Recordar. Volver.</h2></div><div class="method-list"><p><b>01</b><span><strong>Recupera la palabra.</strong> Lee el español e intenta decirlo en alemán antes de revelar.</span></p><p><b>02</b><span><strong>Valora tu recuerdo.</strong> «Otra vez» vuelve en 5 minutos; «Me costó», acorta el intervalo; «Lo sabía» amplía el intervalo.</span></p><p><b>03</b><span><strong>Dale tiempo.</strong> El repaso espaciado ayuda a consolidar lo aprendido. No hace falta hacerlo todo hoy.</span></p></div>`;
-}
-function wordRows(query = "") {
-  const term = query.toLocaleLowerCase("es");
-  const list = cards.filter(
-    (c) =>
-      !term ||
-      `${c.de} ${c.es} ${c.note}`.toLocaleLowerCase("es").includes(term),
-  );
-  return list.length
-    ? list
-        .map(
-          (c) =>
-            `<article class="word-row"><div><strong lang="de">${esc(c.de)}</strong><span>${esc(c.es)}</span></div><span class="word-topic">${esc(c.lessonTitle)}</span><button class="icon-button" data-speak="${esc(c.de)}" aria-label="Escuchar ${esc(c.de)}">${icon("sound")}</button></article>`,
-        )
-        .join("")
-    : '<div class="empty-state"><h2>No encontramos esa palabra.</h2><p>Prueba en español o alemán, o borra la búsqueda.</p></div>';
-}
+function renderReview() { return renderReviewDashboard(state, cards, selectedCategories); }
+function wordRows(query = "") { return renderFolderContent(cards, query, activeFolder); }
 function renderWords() {
-  return `<div class="page-heading"><div><h1>Pequeñas palabras.<br>Grandes comienzos.</h1><p>Tu diccionario de bolsillo, con ${cards.length} expresiones para empezar.</p></div></div><label class="search-label" for="word-search">Buscar en alemán o español</label><input id="word-search" class="search" type="search" placeholder="Prueba con «hola», «ich» o «café»" value="${esc(wordFilter)}" autocomplete="off"><div id="word-results" class="word-list">${wordRows(wordFilter)}</div><div class="section-heading"><h2>Los sonidos también se aprenden.</h2></div><div class="pronunciation-list">${pronunciationTips.map((t) => `<article><button class="sound-word" data-speak="${esc(t.de)}" aria-label="Escuchar ${esc(t.de)}">${icon("sound")}<span lang="de">${esc(t.de)}</span></button><div><h3>${esc(t.title)}</h3><p>${esc(t.explanation)}</p></div></article>`).join("")}</div>`;
+  return `<div class="page-heading"><div><h1>Tus palabras,<br>por carpetas.</h1><p>Explora ${cards.length} palabras y expresiones por tema.</p></div></div><label class="search-label" for="word-search">Buscar en alemán o español</label><input id="word-search" class="search" type="search" placeholder="Prueba con «hola», «manzana» o «café»" value="${esc(wordFilter)}" autocomplete="off"><div id="word-results">${wordRows(wordFilter)}</div>`;
 }
 function renderProgress() {
   const total = Object.values(state.activity).reduce(
@@ -249,7 +266,9 @@ function renderSettings() {
 function startLesson(id) {
   const lesson = lessons.find((l) => l.id === id);
   if (!lesson) return;
-  session = {
+  pauseSession();
+  sessionOwner = owner();
+  session = drafts.load(sessionOwner, `lesson:${id}`) || {
     type: "lesson",
     lesson,
     stage: "study",
@@ -270,28 +289,30 @@ function startLesson(id) {
   render();
   focusMain();
 }
-function startReview(all = false) {
-  const list = all ? cards.filter((c) => state.reviews[c.id]) : due();
+function startReview(all = false, categoryIds = []) {
+  const list = categoryIds.length ? shuffle(cards.filter(c => categoryIds.includes(c.categoryId))).sort((a,b) => {
+    const rank = card => reviewInsight(state.reviews[card.id]).status === "needs-work" ? 0 : state.reviews[card.id]?.due <= Date.now() ? 1 : 2;
+    return rank(a) - rank(b);
+  }) : all ? cards.filter((c) => state.reviews[c.id]) : due();
   if (!list.length) {
     toast("No hay palabras pendientes por ahora.");
     return;
   }
-  session = {
+  pauseSession();
+  sessionOwner = owner();
+  const reviewId = `review:${categoryIds.slice().sort().join(',') || 'all'}`;
+  session = drafts.load(sessionOwner, reviewId) || {
     type: "review",
-    items: [...list]
-      .sort(
-        (a, b) =>
-          (state.reviews[a.id]?.due || 0) - (state.reviews[b.id]?.due || 0),
-      )
-      .slice(0, 20),
+    items: (categoryIds.length ? list : [...list].sort((a,b) => (state.reviews[a.id]?.due || 0) - (state.reviews[b.id]?.due || 0))).slice(0,200),
     index: 0,
     revealed: false,
+    categoryIds,
   };
   render();
   focusMain();
 }
 function sessionHeader(title, progress, label) {
-  return `<div class="session-top"><button class="exit-button" id="exit-session">${icon("close")}<span>Salir</span></button><span>${esc(title)}</span><span>${label}</span></div><div class="session-progress"><span style="width:${progress}%"></span></div>`;
+  return `<div class="session-top"><button class="exit-button" id="exit-session">${icon("home")}<span>Guardar y volver al inicio</span></button><span>${esc(title)}</span><span>${label}</span></div><div class="session-progress"><span style="width:${progress}%"></span></div>`;
 }
 function renderLessonTip(lesson) {
   return `<p>${esc(lesson.tip)}</p>${lesson.tipHelp?.length ? `<div class="tip-questions" aria-label="Explicaciones de la lección">${lesson.tipHelp.map((help) => `<button class="tip-help-button" data-tip-help="${esc(help.id)}" aria-label="Explicación: ${esc(help.label)}" aria-haspopup="dialog" aria-controls="tip-help"><span aria-hidden="true">?</span>${esc(help.label)}</button>`).join("")}</div>` : ""}`;
@@ -340,16 +361,48 @@ function focusMain() {
   window.scrollTo({ top: 0, behavior: "instant" });
 }
 function go(id) {
-  if (session) {
-    toast("Termina la práctica o usa «Salir» para cambiar de sección.");
-    return;
-  }
+  pauseSession();
   view = id;
   location.hash = id;
   render();
   focusMain();
 }
+function bindFolderControls() {
+  document.querySelectorAll("[data-folder]").forEach(button => button.onclick = () => {
+    activeFolder = button.dataset.folder;
+    wordFilter = "";
+    render();
+    focusMain();
+  });
+  $("#all-folders")?.addEventListener("click", () => {
+    activeFolder = null;
+    wordFilter = "";
+    render();
+    focusMain();
+  });
+}
 function bind() {
+  document.querySelectorAll(".brand,.mobile-brand").forEach(link => link.onclick = event => { event.preventDefault(); go("learn"); });
+  document.querySelectorAll("[data-resume]").forEach(button => button.onclick = () => {
+    pauseSession();
+    sessionOwner = owner();
+    session = drafts.load(sessionOwner, button.dataset.resume);
+    render();
+    focusMain();
+  });
+  bindFolderControls();
+  document.querySelectorAll("[data-review-category]").forEach(input => input.onchange = () => {
+    if (input.checked) selectedCategories.add(input.value); else selectedCategories.delete(input.value);
+    render();
+    document.querySelector(`[data-review-category="${input.value}"], [data-review-category][value="${input.value}"]`)?.focus({preventScroll:true});
+  });
+  document.querySelectorAll("[data-focus-category]").forEach(button => button.onclick = () => {
+    selectedCategories = new Set([button.dataset.focusCategory]);
+    render();
+    $("#review-picker").scrollIntoView({block:"start",behavior:"smooth"});
+    document.querySelector(`[data-review-category][value="${button.dataset.focusCategory}"]`)?.focus({preventScroll:true});
+  });
+  $("#start-category-review")?.addEventListener("click", () => startReview(true, [...selectedCategories]));
   document
     .querySelectorAll("[data-view]")
     .forEach((el) => (el.onclick = () => go(el.dataset.view)));
@@ -367,6 +420,7 @@ function bind() {
   $("#word-search")?.addEventListener("input", (e) => {
     wordFilter = e.target.value;
     $("#word-results").innerHTML = wordRows(wordFilter);
+    bindFolderControls();
     $("#word-results")
       .querySelectorAll("[data-speak]")
       .forEach((el) => (el.onclick = () => speak(el.dataset.speak)));
@@ -427,6 +481,7 @@ function bind() {
           toast("La cuenta cambió. Vuelve a seleccionar la copia.");
           return;
         }
+        try { drafts.clear(owner()); } catch {}
         state = imported;
         if (cloud) state = cloud.setState(state, { replace: true });
         else persist();
@@ -445,6 +500,7 @@ function bind() {
       $("#reset-confirm p").textContent =
         "Se borrarán las lecciones, las palabras y las estadísticas de tu cuenta en todos los dispositivos al sincronizar. Esta acción no se puede deshacer sin una copia exportada.";
     $("#confirm-reset").onclick = () => {
+      try { drafts.clear(owner()); } catch {}
       state = initialState();
       if (cloud) state = cloud.setState(state, { replace: true });
       else persist();
@@ -456,11 +512,12 @@ function bind() {
     };
   });
   $("#exit-session")?.addEventListener("click", () => {
-    session = null;
-    window.speechSynthesis?.cancel();
+    pauseSession();
+    view = "learn";
+    location.hash = "learn";
     render();
     focusMain();
-    toast("Práctica cerrada. Los repasos ya respondidos están guardados.");
+    toast("Práctica guardada. Puedes retomarla desde el inicio.");
   });
   $("#finish-close")?.addEventListener("click", () => {
     session = null;
@@ -517,6 +574,7 @@ function bind() {
       (el.onclick = () => {
         if (session.checked) return;
         session.selected = Number(el.dataset.option);
+        checkpointSession();
         document
           .querySelectorAll("[data-option]")
           .forEach((x) => x.classList.toggle("selected", x === el));
@@ -555,7 +613,7 @@ function bind() {
   );
   $("#written-answer")?.addEventListener(
     "input",
-    (e) => (session.written = e.target.value),
+    (e) => { session.written = e.target.value; checkpointSession(); },
   );
   $("#written-answer")?.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -583,7 +641,7 @@ function bind() {
       (el.onclick = () => {
         if (!session.revealed) return;
         const c = session.items[session.index];
-        state.reviews[c.id] = scheduleReview(
+        state.reviews[c.id] = recordRecall(
           state.reviews[c.id],
           el.dataset.grade,
         );
@@ -614,6 +672,8 @@ function checkExercise() {
   session.result = checkAnswer(answer, e.answer);
   session.checked = true;
   session.written = answer;
+  const card = session.lesson.cards.find(card => normalizeAnswer(card.de) === normalizeAnswer(e.de || e.answer));
+  if (card) state.reviews[card.id] = recordRecall(state.reviews[card.id], session.result.correct ? "good" : "again");
   if (
     session.result.correct &&
     session.exerciseIndex < session.lesson.exercises.length
@@ -669,10 +729,7 @@ window.addEventListener("hashchange", () => {
     id === "settings" ||
     id === "account"
   ) {
-    if (session) {
-      location.hash = view;
-      return;
-    }
+    pauseSession();
     view = id;
     render();
   }
@@ -762,7 +819,7 @@ cloud = createProgressController({
   },
   onState(next, meta) {
     state = next;
-    if (meta?.reason === "account" || meta?.reason === "guest") session = null;
+    if (meta?.reason === "account" || meta?.reason === "guest") pauseSession();
     if (
       account &&
       (!session || meta?.reason === "account" || meta?.reason === "guest") &&
@@ -819,6 +876,7 @@ window.addEventListener("focus", () => {
   if (account.getUser()) cloud.sync();
 });
 window.addEventListener("pagehide", () => {
+  checkpointSession();
   /* Progress was queued to local storage before every network write. */
 });
 if (storageFailed)
