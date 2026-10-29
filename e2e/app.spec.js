@@ -195,15 +195,16 @@ test("dictionary, settings, backup import/export and reset use real persisted da
   await page.getByRole("button", { name: "Sí, borrar mi progreso" }).click();
   await expect(page.getByLabel("Meta de respuestas al día")).toHaveValue("10");
   await page.locator("#import-progress").setInputFiles(path);
+  await page
+    .getByRole("button", { name: "Sí, importar y reemplazar", exact: true })
+    .click();
   await expect(page.getByRole("status")).toContainText("Progreso importado.");
   await expect(page.getByLabel("Meta de respuestas al día")).toHaveValue("15");
-  await page
-    .locator("#import-progress")
-    .setInputFiles({
-      name: "corrupt.json",
-      mimeType: "application/json",
-      buffer: Buffer.from("{invalid}"),
-    });
+  await page.locator("#import-progress").setInputFiles({
+    name: "corrupt.json",
+    mimeType: "application/json",
+    buffer: Buffer.from("{invalid}"),
+  });
   await expect(page.getByRole("status")).toContainText("No se pudo importar.");
   await expect(page.getByLabel("Meta de respuestas al día")).toHaveValue("15");
 });

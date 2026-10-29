@@ -1,4 +1,6 @@
 import { lessons, pronunciationTips } from "./curriculum.js";
+import { createAccount, syncLabels } from "./account.js";
+import { createProgressController } from "./cloud-progress.js";
 import {
   initialState,
   hydrateState,
@@ -42,6 +44,8 @@ const icons = {
 const icon = (name, cls = "") =>
   `<svg class="icon ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.book}</svg>`;
 let state,
+  cloud,
+  account,
   storageFailed = false;
 try {
   state = hydrateState(localStorage.getItem("wort-progress"));
@@ -49,9 +53,14 @@ try {
   state = initialState();
   storageFailed = true;
 }
-let view = ["learn", "review", "words", "progress", "settings"].includes(
-  location.hash.slice(1),
-)
+let view = [
+  "learn",
+  "review",
+  "words",
+  "progress",
+  "settings",
+  "account",
+].includes(location.hash.slice(1))
   ? location.hash.slice(1)
   : "learn";
 let session = null,
@@ -63,6 +72,10 @@ const cards = lessons.flatMap((l) =>
   l.cards.map((c) => ({ ...c, lessonId: l.id, lessonTitle: l.title })),
 );
 const persist = () => {
+  if (cloud) {
+    state = cloud.setState(state);
+    return;
+  }
   try {
     localStorage.setItem("wort-progress", JSON.stringify(state));
   } catch {
@@ -104,7 +117,41 @@ function nav() {
 function render() {
   $("#app").innerHTML =
     `<aside class="sidebar"><a class="brand" href="#learn" aria-label="Wort, inicio"><span class="brand-symbol">w<span>•</span></span>wort<span class="brand-period">.</span></a><div class="language-label"><span class="german-flag" aria-hidden="true"></span>Alemán desde el español</div><nav aria-label="Navegación principal">${nav()}</nav><div class="sidebar-note"><span lang="de">Schritt für Schritt.</span><p>Paso a paso.<br>Una palabra a la vez.</p><span class="note-line"></span></div><button class="nav-item settings-nav ${view === "settings" ? "active" : ""}" data-view="settings">${icon("settings")}<span>Ajustes</span></button></aside><div class="workspace"><header class="topbar"><a href="#learn" class="mobile-brand">wort<span>.</span></a><span class="breadcrumb">Tu espacio de alemán <span>/</span> ${session ? "En práctica" : navItems.find((n) => n[0] === view)?.[2] || "Ajustes"}</span><div class="header-right"><span class="streak">${icon("spark")}<b>${getStreak(state)}</b><span>días de racha</span></span><button class="avatar" data-view="settings" aria-label="Abrir ajustes" title="Ajustes">${icon("settings")}</button></div></header><main id="main" tabindex="-1">${session ? renderSession() : renderView()}</main><footer class="site-footer"><span>Hecho para aprender. A tu ritmo.</span><span>Español → Deutsch ${icon("spark")}</span></footer></div><nav class="mobile-nav" aria-label="Navegación móvil">${nav()}</nav>`;
+  const user = account?.getUser();
+  const syncInfo = cloud?.getInfo() || { status: "local" };
+  $(".header-right").insertAdjacentHTML(
+    "afterbegin",
+    `<button class="header-account" data-view="account" aria-label="${user ? "Abrir mi cuenta" : "Iniciar sesión"}"><span class="sync-dot ${user ? syncInfo.status : "local"}" aria-hidden="true"></span><span>${user ? "Mi cuenta" : "Entrar"}</span></button>`,
+  );
+  $(".settings-nav").insertAdjacentHTML(
+    "beforebegin",
+    `<button class="nav-item account-nav ${view === "account" ? "active" : ""}" data-view="account">${icon("book")}<span>${user ? "Mi cuenta" : "Entrar a mi cuenta"}</span></button>`,
+  );
+  if (view === "account")
+    $(".breadcrumb").innerHTML =
+      "Tu espacio de alemán <span>/</span> Mi cuenta";
+  if (view === "settings") {
+    const section = [...document.querySelectorAll(".settings-section")].find(
+      (el) => el.querySelector("h2")?.textContent === "Tu progreso es tuyo",
+    );
+    if (section) {
+      section.querySelector("p").textContent = user
+        ? "Tu progreso se guarda en tu cuenta y en este dispositivo. La exportación te permite conservar una copia adicional."
+        : "Tu progreso se guarda en este navegador. Entra a tu cuenta para sincronizarlo entre dispositivos, o exporta una copia.";
+      section.insertAdjacentHTML(
+        "afterbegin",
+        `<button class="button secondary settings-account-link" data-view="account">${user ? "Ver mi cuenta y sincronización" : "Entrar para guardar mi progreso"}</button>`,
+      );
+    }
+    const privacy = [...document.querySelectorAll(".about p")].find((el) =>
+      el.textContent.includes("No hay anuncios, cuentas"),
+    );
+    if (privacy)
+      privacy.textContent =
+        "No hay anuncios ni analítica. Con una cuenta, Neon gestiona el acceso y guarda tu progreso; Vercel aloja la app. Sin cuenta, los avances permanecen en este navegador. Las voces son del dispositivo o de su proveedor.";
+  }
   bind();
+  account?.bind();
 }
 function renderView() {
   return (
@@ -114,6 +161,7 @@ function renderView() {
       words: renderWords,
       progress: renderProgress,
       settings: renderSettings,
+      account: () => account.render(),
     }[view] || renderHome
   )();
 }
@@ -348,10 +396,27 @@ function bind() {
         !raw.activity
       )
         throw Error();
-      state = hydrateState(raw);
-      persist();
-      render();
-      toast("Progreso importado.");
+      const imported = hydrateState(raw);
+      const targetUser = account?.getUser()?.id || null;
+      let confirmation = $("#import-confirm");
+      if (!confirmation) {
+        confirmation = document.createElement("div");
+        confirmation.id = "import-confirm";
+        $("#import-progress").closest(".settings-section").append(confirmation);
+      }
+      confirmation.innerHTML = `<p>${targetUser ? "Esta copia reemplazará el progreso de tu cuenta en todos los dispositivos al sincronizar." : "Esta copia reemplazará el progreso de este navegador."} Exporta antes una copia si quieres conservarlo.</p><div class="button-group"><button class="button primary" id="confirm-import">Sí, importar y reemplazar</button><button class="button secondary" id="cancel-import">Cancelar</button></div>`;
+      $("#confirm-import").onclick = () => {
+        if ((account?.getUser()?.id || null) !== targetUser) {
+          toast("La cuenta cambió. Vuelve a seleccionar la copia.");
+          return;
+        }
+        state = imported;
+        if (cloud) state = cloud.setState(state, { replace: true });
+        else persist();
+        render();
+        toast("Progreso importado.");
+      };
+      $("#cancel-import").onclick = () => confirmation.remove();
     } catch {
       toast("No se pudo importar. Elige una copia JSON exportada por Wort.");
     }
@@ -359,9 +424,13 @@ function bind() {
   $("#reset-progress")?.addEventListener("click", () => {
     $("#reset-confirm").innerHTML =
       '<p>Se borrarán las lecciones, las palabras y las estadísticas de este navegador.</p><button class="button danger" id="confirm-reset">Sí, borrar mi progreso</button> <button class="button secondary" id="cancel-reset">Conservar mi progreso</button>';
+    if (account?.getUser())
+      $("#reset-confirm p").textContent =
+        "Se borrarán las lecciones, las palabras y las estadísticas de tu cuenta en todos los dispositivos al sincronizar. Esta acción no se puede deshacer sin una copia exportada.";
     $("#confirm-reset").onclick = () => {
       state = initialState();
-      persist();
+      if (cloud) state = cloud.setState(state, { replace: true });
+      else persist();
       render();
       toast("Progreso borrado. Puedes empezar de nuevo.");
     };
@@ -545,7 +614,11 @@ function speak(text) {
 }
 window.addEventListener("hashchange", () => {
   const id = location.hash.slice(1);
-  if (navItems.some((n) => n[0] === id) || id === "settings") {
+  if (
+    navItems.some((n) => n[0] === id) ||
+    id === "settings" ||
+    id === "account"
+  ) {
     if (session) {
       location.hash = view;
       return;
@@ -561,7 +634,143 @@ window.addEventListener("beforeinstallprompt", (e) => {
 loadVoices();
 if (window.speechSynthesis)
   window.speechSynthesis.addEventListener("voiceschanged", loadVoices);
+async function progressRequest(method, payload) {
+  const token = await account.token();
+  const response = await fetch("/api/progress", {
+    method,
+    cache: "no-store",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(payload ? { "Content-Type": "application/json" } : {}),
+    },
+    ...(payload ? { body: JSON.stringify(payload) } : {}),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    const error = Object.assign(
+      new Error(
+        response.status === 401
+          ? "Tu sesión venció. Vuelve a entrar."
+          : "No se pudo sincronizar. Conservamos tus avances en este dispositivo.",
+      ),
+      { status: response.status },
+    );
+    if (response.status === 409)
+      error.current = { document: data.document, revision: data.revision };
+    throw error;
+  }
+  return data;
+}
+// A new writer for every page instance also isolates duplicated browser tabs.
+const actor = crypto.randomUUID();
+const storageBridge = {
+  getItem(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      storageFailed = true;
+      return null;
+    }
+  },
+  setItem(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      storageFailed = true;
+      throw new Error("No se pudo guardar en este dispositivo.");
+    }
+  },
+  removeItem(key) {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      storageFailed = true;
+    }
+  },
+  key(index) {
+    try {
+      return localStorage.key(index);
+    } catch {
+      return null;
+    }
+  },
+  get length() {
+    try {
+      return localStorage.length;
+    } catch {
+      return 0;
+    }
+  },
+};
+cloud = createProgressController({
+  storage: storageBridge,
+  actor,
+  transport: {
+    load: () => progressRequest("GET"),
+    save: (document, expectedRevision) =>
+      progressRequest("PUT", { document, expectedRevision }),
+  },
+  onState(next, meta) {
+    state = next;
+    if (meta?.reason === "account" || meta?.reason === "guest") session = null;
+    if (
+      account &&
+      (!session || meta?.reason === "account" || meta?.reason === "guest") &&
+      !(view === "account" && account.isBusy())
+    )
+      render();
+  },
+  onStatus() {
+    if (!account) return;
+    const info = cloud.getInfo();
+    document
+      .querySelectorAll(
+        ".header-account .sync-dot,.account-sync-state .sync-dot",
+      )
+      .forEach((dot) => (dot.className = `sync-dot ${info.status}`));
+    const label = document.querySelector(".account-sync-state strong");
+    if (label) label.textContent = syncLabels[info.status] || syncLabels.local;
+    const help = document.querySelector("#account-sync-help");
+    if (help)
+      help.textContent =
+        info.errorMessage ||
+        (info.pending
+          ? "Tus avances están guardados aquí y pendientes de sincronizar."
+          : "Tus avances se sincronizan con tu cuenta.");
+    const syncButton = document.querySelector("#sync-now");
+    if (syncButton)
+      syncButton.disabled =
+        info.status === "loading" || info.status === "syncing";
+  },
+});
+state = cloud.getState();
+account = createAccount({
+  getProgressInfo: () => cloud.getInfo(),
+  onUser: (user) => (user ? cloud.connect(user.id) : cloud.disconnect()),
+  onChange() {
+    if (view === "account" || !session) render();
+  },
+  onMessage(message) {
+    if (message === "guest") go("learn");
+    else toast(message);
+  },
+  onSync: () => cloud.sync(),
+  onImportGuest: () => cloud.importGuest(),
+});
+if (new URL(location.href).searchParams.has("token")) view = "account";
 render();
+account.init();
+window.addEventListener("online", () => {
+  account.refresh();
+  cloud.sync();
+});
+window.addEventListener("focus", () => {
+  account.refresh();
+  if (account.getUser()) cloud.sync();
+});
+window.addEventListener("pagehide", () => {
+  /* Progress was queued to local storage before every network write. */
+});
 if (storageFailed)
   setTimeout(
     () =>

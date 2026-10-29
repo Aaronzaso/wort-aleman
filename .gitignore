@@ -4,3 +4,8 @@ dist/
 .playwright-cli/
 *.log
 .env*
+!.env.example
+.vercel/
+.agents/skills/neon/
+.agents/skills/neon-postgres/
+skills-lock.json

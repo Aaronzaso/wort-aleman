@@ -134,6 +134,8 @@ Los paneles comparten esquinas suaves del rol panel. Los botones son rectángulo
 - **Tarjeta de estudio:** expresión alemana grande, acción de audio, divisor menta, traducción española y explicación breve. La entrada usa desplazamiento vertical (9px) y recorte durante (.35s); se elimina con movimiento reducido.
 - **Opciones de respuesta:** filas blancas con letra de referencia y selección violeta. La corrección añade texto explicativo y un icono de acierto cuando corresponde.
 - **Avisos:** aparecen sobre el contenido y anuncian su texto mediante una región de estado. En celular quedan por encima de la navegación inferior.
+- **Cuenta:** mantiene la superficie blanca y los títulos violeta. Google es el acceso principal, con alternativa por correo y campos de 16px. El panel lateral de apoyo desaparece bajo 1050px; los formularios conservan una columna en celular.
+- **Sincronización:** el indicador acompaña un estado escrito, como «Progreso sincronizado» o «Sin conexión». Importar una copia y borrar progreso requieren confirmación explícita; el texto explica si afecta al navegador o a toda la cuenta.
 
 ## Do's and Don'ts
 

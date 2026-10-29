@@ -1,4 +1,4 @@
-const CACHE = "wort-v1.0.1";
+const CACHE = "wort-v2.0.1-accounts";
 const ASSETS = [
   "./",
   "./index.html",
@@ -37,6 +37,7 @@ self.addEventListener("fetch", (event) => {
     new URL(event.request.url).origin !== self.location.origin
   )
     return;
+  if (new URL(event.request.url).pathname.startsWith("/api/")) return;
   event.respondWith(
     caches
       .match(event.request)
